@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Camera, X, Plus } from 'lucide-react';
 import { Card, Input, Btn, PageHeader, Spinner, UpgradeWall } from '../../components/ui';
 import { quotesRemaining } from '../../lib/stripe';
 
 export default function NewQuote() {
   const router = useRouter();
   const { user, profile, getToken } = useAuth();
-  const { createQuote } = useQuotes();
+  const { createQuote, updateQuote } = useQuotes();
   const [lineItems, setLineItems] = useState([]);
   const [transcript, setTranscript] = useState('');
   const [scope, setScope] = useState('');
@@ -24,6 +24,8 @@ export default function NewQuote() {
   const [discountValue, setDiscountValue] = useState(0);
   const [saving, setSaving] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [photos, setPhotos] = useState([]); // { id, dataUrl, file? }
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -35,6 +37,7 @@ export default function NewQuote() {
         setLineItems((data.lineItems || []).map(i => ({ taxable: false, ...i })));
         setTranscript(data.transcript || '');
         setScope(data.scope || '');
+        setPhotos((data.photos || []).map((dataUrl, i) => ({ id: 'ph_' + i, dataUrl })));
         sessionStorage.removeItem('pendingQuote');
       } catch (e) {}
     } else {
@@ -53,6 +56,54 @@ export default function NewQuote() {
   const updateItem = (id, field, val) => setLineItems(items => items.map(i => i.id === id ? { ...i, [field]: val } : i));
   const addItem = () => setLineItems(items => [...items, { id: 'li_' + Date.now(), task: '', desc: '', qty: 1, unit: 'ea', price: 0, taxable: false }]);
   const removeItem = (id) => setLineItems(items => items.filter(i => i.id !== id));
+
+  const dataUrlToBlob = (dataUrl) => {
+    const [meta, b64] = dataUrl.split(',');
+    const mime = meta.match(/:(.*?);/)[1];
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  };
+
+  const handleFilesSelected = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => setPhotos(p => [...p, { id: 'ph_' + Date.now() + Math.random(), dataUrl: reader.result }]);
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const removePhoto = (id) => setPhotos(p => p.filter(ph => ph.id !== id));
+
+  const uploadPhotos = async (quoteId) => {
+    const token = await getToken();
+    const urls = [];
+    for (const photo of photos) {
+      try {
+        const blob = dataUrlToBlob(photo.dataUrl);
+        const formData = new FormData();
+        formData.append('file', blob, 'photo.jpg');
+        formData.append('quote_id', quoteId);
+        const res = await fetch('/api/upload-quote-photo', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        if (res.ok) {
+          const { url } = await res.json();
+          urls.push(url);
+        }
+      } catch (e) {
+        console.error('Photo upload failed:', e);
+      }
+    }
+    if (urls.length > 0) {
+      await updateQuote(quoteId, { photos: urls });
+    }
+  };
 
   const subtotal = lineItems.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
   const taxableSubtotal = lineItems.filter(i => i.taxable).reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
@@ -78,6 +129,7 @@ export default function NewQuote() {
         discount_value: Number(discountValue) || 0,
       });
       if (quote?.error === 'QUOTA_EXCEEDED') { setShowUpgrade(true); return; }
+      if (photos.length > 0) await uploadPhotos(quote.id);
       router.push(`/quotes/${quote.id}`);
     } catch (e) {
       if (e.error === 'QUOTA_EXCEEDED') setShowUpgrade(true);
@@ -173,7 +225,27 @@ export default function NewQuote() {
             </div>
           </div>
 
-          {/* Totals */}
+          {/* Photos */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Photos</p>
+            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" multiple onChange={handleFilesSelected} style={{ display: 'none' }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {photos.map(p => (
+                <div key={p.id} style={{ position: 'relative' }}>
+                  <img src={p.dataUrl} style={{ width: 76, height: 76, borderRadius: 12, objectFit: 'cover', border: '1.5px solid #e2e8f0' }} />
+                  <button onClick={() => removePhoto(p.id)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, background: '#dc2626', border: '2px solid #fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                    <X size={11} strokeWidth={3} />
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => fileInputRef.current?.click()} style={{ width: 76, height: 76, borderRadius: 12, border: '1.5px dashed #cbd5e1', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', color: '#64748b' }}>
+                <Plus size={18} />
+                <span style={{ fontSize: 10, fontWeight: 700 }}>Add</span>
+              </button>
+            </div>
+          </div>
+
+                    {/* Totals */}
           <Card style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>

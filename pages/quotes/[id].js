@@ -190,6 +190,20 @@ export default function QuoteDetail() {
           </Card>
         )}
 
+        {/* Job Photos */}
+        {quote.photos && quote.photos.length > 0 && (
+          <Card style={{ marginBottom: 16 }}>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Job Photos</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {quote.photos.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} style={{ width: 80, height: 80, borderRadius: 12, objectFit: 'cover', border: '1.5px solid #e2e8f0' }} />
+                </a>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {/* Transcript */}
         {quote.transcript && (
           <Card style={{ marginBottom: 16 }}>

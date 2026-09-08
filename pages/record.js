@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
-import { Mic, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Mic, CheckCircle2, AlertTriangle, Camera, X } from 'lucide-react';
 import { Btn, Spinner } from '../components/ui';
 
 const PHASE = { idle: 'idle', recording: 'recording', processing: 'processing', done: 'done', error: 'error' };
@@ -14,12 +14,15 @@ export default function RecordPage() {
   const [step, setStep] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [flash, setFlash] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const audioStreamRef = useRef(null);
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const timerRef = useRef(null);
 
 useEffect(() => {
@@ -89,6 +92,24 @@ useEffect(() => {
     }
   };
 
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || !video.videoWidth) return;
+    const maxW = 1024;
+    const scale = Math.min(1, maxW / video.videoWidth);
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    setPhotos(p => [...p, { id: 'ph_' + Date.now(), dataUrl }]);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 150);
+  };
+
+  const removePhoto = (id) => setPhotos(p => p.filter(ph => ph.id !== id));
+
   const stopAndProcess = () => {
     clearInterval(timerRef.current);
     const recorder = mediaRecorderRef.current;
@@ -141,7 +162,7 @@ useEffect(() => {
       }
       const { lineItems, scope } = await estimateRes.json();
 
-      setResult({ transcript, lineItems, scope });
+      setResult({ transcript, lineItems, scope, photos: photos.map(p => p.dataUrl) });
       setPhase(PHASE.done);
     } catch (e) {
       setError(e.message);
@@ -164,6 +185,8 @@ useEffect(() => {
     <div style={{ minHeight: '100dvh', background: '#0f172a', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Video viewfinder */}
       <video ref={videoRef} muted playsInline autoPlay style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: phase === PHASE.recording ? 1 : 0.15 }} />
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      {flash && <div style={{ position: 'absolute', inset: 0, background: '#fff', opacity: 0.7, zIndex: 20, pointerEvents: 'none' }} />}
 
       {/* Overlay */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100dvh' }}>
@@ -172,9 +195,17 @@ useEffect(() => {
           <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 12, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>‹</button>
           <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 700, margin: 0, fontFamily: "'Sora', sans-serif" }}>Record Job Site</h2>
           {phase === PHASE.recording && (
-            <div style={{ marginLeft: 'auto', background: 'rgba(220,38,38,0.8)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 7, height: 7, borderRadius: 4, background: '#fff', animation: 'blink 1s ease infinite' }} />
-              <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{fmt(elapsed)}</span>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {photos.length > 0 && (
+                <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Camera size={13} color="#fff" />
+                  <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{photos.length}</span>
+                </div>
+              )}
+              <div style={{ background: 'rgba(220,38,38,0.8)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 7, height: 7, borderRadius: 4, background: '#fff', animation: 'blink 1s ease infinite' }} />
+                <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{fmt(elapsed)}</span>
+              </div>
             </div>
           )}
         </div>
@@ -185,7 +216,7 @@ useEffect(() => {
             <div style={{ textAlign: 'center' }}>
               <div style={{ width: 80, height: 80, borderRadius: 40, background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}><Mic size={36} color="#fff" strokeWidth={1.75} /></div>
               <p style={{ color: '#fff', fontSize: 18, fontWeight: 700, margin: '0 0 8px', fontFamily: "'Sora', sans-serif" }}>Ready to record</p>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>Walk the job site and describe the work out loud — in any language. You can translate the estimate afterward.</p>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>Walk the job site and describe the work out loud — in any language. Tap the camera button anytime to snap photos too.</p>
             </div>
           )}
 
@@ -215,6 +246,20 @@ useEffect(() => {
           )}
         </div>
 
+        {/* Photo thumbnail strip */}
+        {phase === PHASE.recording && photos.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, padding: '0 20px 12px', overflowX: 'auto' }}>
+            {photos.map(p => (
+              <div key={p.id} style={{ position: 'relative', flexShrink: 0 }}>
+                <img src={p.dataUrl} style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', border: '2px solid rgba(255,255,255,0.3)' }} />
+                <button onClick={() => removePhoto(p.id)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, background: '#dc2626', border: '2px solid #0f172a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                  <X size={11} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Bottom controls */}
         <div style={{ padding: '24px 32px 48px', display: 'flex', justifyContent: 'center', gap: 24, alignItems: 'center' }}>
           {phase === PHASE.idle && (
@@ -228,6 +273,12 @@ useEffect(() => {
 
           {phase === PHASE.recording && (
             <>
+              <button
+                onClick={capturePhoto}
+                style={{ width: 56, height: 56, borderRadius: 28, background: 'rgba(255,255,255,0.15)', border: '3px solid rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Camera size={24} color="#fff" strokeWidth={2} />
+              </button>
               <button
                 onClick={stopAndProcess}
                 style={{ width: 72, height: 72, borderRadius: 36, background: '#dc2626', border: '4px solid rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}

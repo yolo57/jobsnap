@@ -113,6 +113,20 @@ export default function PublicQuotePage({ quote }) {
             </div>
           </div>
 
+          {/* Job Photos */}
+          {quote.photos && quote.photos.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', border: '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Job Site Photos</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {quote.photos.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                    <img src={url} style={{ width: 90, height: 90, borderRadius: 12, objectFit: 'cover', border: '1.5px solid #e2e8f0' }} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           {(quote.notes || profile.payment_terms || profile.quote_notes) && (
             <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', border: '1px solid #e2e8f0', marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
