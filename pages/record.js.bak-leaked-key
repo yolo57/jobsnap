@@ -1,0 +1,2 @@
+This backup contained a leaked OpenAI API key and was removed for security.
+See pages/record.js for the fixed version (audio-only recording via /api/transcribe, no client-side key).

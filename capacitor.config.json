@@ -1,0 +1,14 @@
+{
+  "appId": "com.jobsnap.app",
+  "appName": "JobSnap",
+  "webDir": "public",
+  "server": {
+    "url": "https://jobsnap-psi.vercel.app",
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

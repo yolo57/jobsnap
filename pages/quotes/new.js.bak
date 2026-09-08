@@ -1,0 +1,177 @@
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useAuth } from '../../hooks/useAuth';
+import { useQuotes } from '../../hooks/useQuotes';
+import AppShell from '../../components/layout/AppShell';
+import { Card, Input, Btn, PageHeader, Spinner, UpgradeWall } from '../../components/ui';
+import { quotesRemaining } from '../../lib/stripe';
+
+export default function NewQuote() {
+  const router = useRouter();
+  const { user, profile, getToken } = useAuth();
+  const { createQuote } = useQuotes();
+  const [lineItems, setLineItems] = useState([]);
+  const [transcript, setTranscript] = useState('');
+  const [scope, setScope] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  useEffect(() => {
+    if (!user) { router.replace('/login'); return; }
+    // Load pending quote from recording
+    const pending = sessionStorage.getItem('pendingQuote');
+    if (pending) {
+      try {
+        const data = JSON.parse(pending);
+        setLineItems(data.lineItems || []);
+        setTranscript(data.transcript || '');
+        setScope(data.scope || '');
+        sessionStorage.removeItem('pendingQuote');
+      } catch (e) {}
+    } else {
+      // Manual new quote — add one empty line item
+      setLineItems([{ id: 'li_' + Date.now(), task: '', desc: '', qty: 1, unit: 'ea', price: 0 }]);
+    }
+    // Check quota
+    if (profile && quotesRemaining(profile) === 0) setShowUpgrade(true);
+  }, [user, profile]);
+
+  const updateItem = (id, field, val) => setLineItems(items => items.map(i => i.id === id ? { ...i, [field]: val } : i));
+  const addItem = () => setLineItems(items => [...items, { id: 'li_' + Date.now(), task: '', desc: '', qty: 1, unit: 'ea', price: 0 }]);
+  const removeItem = (id) => setLineItems(items => items.filter(i => i.id !== id));
+
+  const subtotal = lineItems.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
+  const taxRate = profile?.tax_rate || 0;
+  const tax = subtotal * (taxRate / 100);
+  const discountAmount = Math.min(Number(discount) || 0, subtotal + tax);
+  const total = subtotal + tax - discountAmount;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const quote = await createQuote({ customer_name: customerName, customer_email: customerEmail, address, transcript, line_items: lineItems, notes, discount_amount: discountAmount });
+      if (quote?.error === 'QUOTA_EXCEEDED') { setShowUpgrade(true); return; }
+      router.push(`/quotes/${quote.id}`);
+    } catch (e) {
+      if (e.error === 'QUOTA_EXCEEDED') setShowUpgrade(true);
+      else alert('Error saving: ' + (e.error || e.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpgrade = async (plan) => {
+    const token = await getToken();
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    });
+    const { url } = await res.json();
+    window.location.href = url;
+  };
+
+  if (!user) return null;
+
+  return (
+    <AppShell>
+      {showUpgrade && <UpgradeWall plan={profile?.plan} quotesUsed={profile?.quotes_used_this_month} onUpgrade={handleUpgrade} />}
+
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <PageHeader title="New Estimate" onBack={() => router.back()} action={
+          <Btn onClick={handleSave} size="sm" loading={saving}>Save</Btn>
+        } />
+
+        {scope && (
+          <div style={{ background: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '12px 20px' }}>
+            <p style={{ color: '#1d4ed8', fontSize: 13, margin: 0, lineHeight: 1.5 }}>🤖 <strong>AI Summary:</strong> {scope}</p>
+          </div>
+        )}
+
+        <div style={{ padding: '16px', overflowY: 'auto' }}>
+          {/* Customer info */}
+          <Card style={{ marginBottom: 16 }}>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 14px' }}>Customer</p>
+            <Input label="Customer Name" value={customerName} onChange={setCustomerName} placeholder="John Smith" />
+            <Input label="Email" type="email" value={customerEmail} onChange={setCustomerEmail} placeholder="customer@email.com" hint="Used for follow-up emails" />
+            <Input label="Job Address" value={address} onChange={setAddress} placeholder="123 Main St, City, State" style={{ marginBottom: 0 }} />
+          </Card>
+
+          {/* Line items */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Line Items</p>
+              <button onClick={addItem} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '5px 12px', color: '#2563eb', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>+ Add</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {lineItems.map((item, idx) => (
+                <Card key={item.id} style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>Item {idx + 1}</span>
+                    {lineItems.length > 1 && (
+                      <button onClick={() => removeItem(item.id)} style={{ background: '#fef2f2', border: 'none', color: '#dc2626', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
+                    )}
+                  </div>
+                  <Input value={item.task} onChange={v => updateItem(item.id, 'task', v)} placeholder="Task name (e.g. Replace garage door)" style={{ marginBottom: 8 }} />
+                  <Input value={item.desc} onChange={v => updateItem(item.id, 'desc', v)} placeholder="Description (optional)" multiline rows={2} style={{ marginBottom: 8 }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Input label="Qty" value={String(item.qty)} onChange={v => updateItem(item.id, 'qty', v)} type="number" style={{ flex: 1, marginBottom: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ color: '#475569', fontSize: 12, fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unit</p>
+                      <select value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)} style={{ width: '100%', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px', color: '#0f172a', fontSize: 15, outline: 'none', fontFamily: "'DM Sans', sans-serif" }}>
+                        {['ea', 'hr', 'sqft', 'lnft', 'lot'].map(u => <option key={u}>{u}</option>)}
+                      </select>
+                    </div>
+                    <Input label="Price ($)" value={String(item.price)} onChange={v => updateItem(item.id, 'price', v)} type="number" style={{ flex: 1, marginBottom: 0 }} />
+                  </div>
+                  <div style={{ marginTop: 8, textAlign: 'right' }}>
+                    <span style={{ color: '#2563eb', fontSize: 14, fontWeight: 700 }}>
+                      ${(Number(item.price) * Number(item.qty)).toLocaleString()}
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Totals */}
+          <Card style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748b', fontSize: 14 }}>Subtotal</span>
+                <span style={{ color: '#0f172a', fontSize: 14, fontWeight: 600 }}>${subtotal.toLocaleString()}</span>
+              </div>
+              {taxRate > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b', fontSize: 14 }}>Tax ({taxRate}%)</span>
+                  <span style={{ color: '#0f172a', fontSize: 14, fontWeight: 600 }}>${tax.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#64748b', fontSize: 14 }}>Discount ($)</span>
+                <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} min="0" step="0.01" placeholder="0.00" style={{ width: 110, textAlign: 'right', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', color: '#0f172a', fontSize: 14, fontWeight: 600, outline: 'none', fontFamily: "'DM Sans', sans-serif" }} />
+              </div>
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#0f172a', fontSize: 16, fontWeight: 800, fontFamily: "'Sora', sans-serif" }}>Total</span>
+                <span style={{ color: '#2563eb', fontSize: 20, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>${total.toLocaleString()}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Notes */}
+          <Card style={{ marginBottom: 24 }}>
+            <Input label="Notes" value={notes} onChange={setNotes} placeholder={profile?.quote_notes || 'Thank you for your business!'} multiline rows={3} style={{ marginBottom: 0 }} />
+          </Card>
+
+          <Btn onClick={handleSave} fullWidth size="lg" loading={saving}>Save Estimate</Btn>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
