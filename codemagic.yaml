@@ -39,16 +39,13 @@ workflows:
         script: keychain add-certificates
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
-      - name: Set build number
-        script: |
-          cd ios/App
-          agvtool new-version -all $CM_BUILD_NUMBER
-          cd ../..
       - name: Build ipa for distribution
         script: |
+          BUILD_NUMBER=$(date +%s)
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --archive-xcargs "CURRENT_PROJECT_VERSION=$BUILD_NUMBER"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
