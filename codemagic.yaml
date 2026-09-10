@@ -9,6 +9,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.yolo57.jobsnap
       vars:
+        BUNDLE_ID: "com.yolo57.jobsnap"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
     integrations:
@@ -27,7 +28,14 @@ workflows:
           npm install @capacitor/ios
           npx cap add ios || true
           npx cap sync ios
-      - name: Set up code signing
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Set up signing certificate
+        script: keychain add-certificates
+      - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Install CocoaPods dependencies
         script: cd ios/App && pod install
