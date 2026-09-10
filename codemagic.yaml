@@ -39,8 +39,6 @@ workflows:
         script: keychain add-certificates
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
-      - name: Install CocoaPods dependencies
-        script: cd ios/App && pod install
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
