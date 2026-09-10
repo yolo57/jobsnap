@@ -5,9 +5,6 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: 22
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.yolo57.jobsnap
       vars:
         BUNDLE_ID: "com.yolo57.jobsnap"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
