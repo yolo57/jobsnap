@@ -5,6 +5,8 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: 22
+      groups:
+        - ios_signing
       vars:
         BUNDLE_ID: "com.yolo57.jobsnap"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
@@ -31,6 +33,7 @@ workflows:
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
       - name: Set up signing certificate
         script: keychain add-certificates
