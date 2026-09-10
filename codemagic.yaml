@@ -11,8 +11,8 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-      integrations:
-        app_store_connect: Codemagic
+    integrations:
+      app_store_connect: Codemagic
     triggering:
       events:
         - push
