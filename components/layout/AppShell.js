@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { LayoutGrid, FileText, Users, Settings as SettingsIcon, Mic } from 'lucide-react';
+import { LayoutGrid, FileText, Users, Settings as SettingsIcon, Mic, Calendar } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { JobSnapLogo, Badge } from '../ui';
 import { supabase } from '../../lib/supabase';
@@ -9,9 +9,12 @@ export default function AppShell({ children }) {
   const { user, profile } = useAuth();
   const path = router.pathname;
 
-  const nav = [
+  const navLeft = [
     { href: '/dashboard', Icon: LayoutGrid, label: 'Dashboard' },
     { href: '/quotes', Icon: FileText, label: 'Quotes' },
+  ];
+  const navRight = [
+    { href: '/schedule', Icon: Calendar, label: 'Schedule' },
     { href: '/customers', Icon: Users, label: 'Clients' },
     { href: '/settings', Icon: SettingsIcon, label: 'Settings' },
   ];
@@ -40,7 +43,23 @@ export default function AppShell({ children }) {
       {/* Bottom nav */}
       <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: '#fff', borderTop: '1px solid #e2e8f0', zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -2px 12px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', position: 'relative' }}>
-          {nav.map((item) => {
+          {navLeft.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <button
+                key={item.href}
+                onClick={() => router.push(item.href)}
+                style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '10px 0 8px' }}
+              >
+                <item.Icon size={20} strokeWidth={2.25} style={{ opacity: active ? 1 : 0.45 }} color={active ? '#2563eb' : '#94a3b8'} />
+                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, color: active ? '#2563eb' : '#94a3b8', fontFamily: "'DM Sans', sans-serif" }}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+          <div style={{ flex: 1 }} />
+          {navRight.map((item) => {
             const active = isActive(item.href);
             return (
               <button

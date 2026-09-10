@@ -117,3 +117,8 @@ begin
   return next_num;
 end;
 $$ language plpgsql security definer;
+
+-- ─── Scheduling (added) ───────────────────────────────────────
+alter table quotes add column if not exists scheduled_date date;
+alter table quotes add column if not exists scheduled_time text;
+create index if not exists quotes_scheduled_date_idx on quotes(scheduled_date);

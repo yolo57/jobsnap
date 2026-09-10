@@ -3,8 +3,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
-import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star } from 'lucide-react';
-import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet } from '../../components/ui';
+import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar } from 'lucide-react';
+import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet, Input } from '../../components/ui';
 
 export default function QuoteDetail() {
   const router = useRouter();
@@ -16,12 +16,20 @@ export default function QuoteDetail() {
   const [showShare, setShowShare] = useState(false);
   const [copied, setCopied] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [schedDate, setSchedDate] = useState('');
+  const [schedTime, setSchedTime] = useState('');
+  const [scheduling, setScheduling] = useState(false);
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
     if (id && quotes.length > 0) {
       const q = quotes.find(q => q.id === id);
-      if (q) setQuote(q);
+      if (q) {
+        setQuote(q);
+        setSchedDate(q.scheduled_date || '');
+        setSchedTime(q.scheduled_time || '');
+      }
     }
   }, [id, quotes, user]);
 
@@ -68,6 +76,20 @@ export default function QuoteDetail() {
     setShowShare(true);
   };
 
+  const handleSaveSchedule = async () => {
+    if (!schedDate) return;
+    setScheduling(true);
+    try {
+      const updated = await updateQuote(quote.id, { scheduled_date: schedDate, scheduled_time: schedTime || null });
+      setQuote(updated);
+      setShowSchedule(false);
+    } catch (e) {
+      alert('Could not save schedule: ' + (e.error || e.message || 'Unknown error'));
+    } finally {
+      setScheduling(false);
+    }
+  };
+
   const handleTranslate = async (targetLanguage) => {
     setTranslating(true);
     try {
@@ -90,7 +112,7 @@ export default function QuoteDetail() {
   const STATUS_ACTIONS = {
     Draft: [{ label: 'Send Quote', Icon: Send, action: handleSend, variant: 'primary' }, { label: 'Edit', Icon: Pencil, action: () => router.push(`/quotes/${quote.id}/edit`), variant: 'secondary' }],
     Sent: [{ label: 'Mark Approved', Icon: CheckCircle2, action: () => handleStatus('Approved'), variant: 'success' }, { label: 'Mark Rejected', Icon: XCircle, action: () => handleStatus('Rejected'), variant: 'danger' }],
-    Approved: [{ label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'primary' }],
+    Approved: [{ label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'primary' }, { label: quote.scheduled_date ? 'Reschedule' : 'Schedule Job', Icon: Calendar, action: () => setShowSchedule(true), variant: 'secondary' }],
     Rejected: [{ label: 'Duplicate', Icon: CopyIcon, action: () => {}, variant: 'secondary' }],
   };
 
@@ -117,9 +139,14 @@ export default function QuoteDetail() {
               <p style={{ color: '#fff', fontSize: 26, fontWeight: 900, margin: 0, fontFamily: "'Sora', sans-serif" }}>${(quote.total || 0).toLocaleString()}</p>
             </div>
           </div>
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', gap: 20 }}>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', gap: 20, flexWrap: 'wrap' }}>
             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Created {new Date(quote.created_at).toLocaleDateString()}</span>
             {quote.sent_at && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Sent {new Date(quote.sent_at).toLocaleDateString()}</span>}
+            {quote.scheduled_date && (
+              <span style={{ color: '#bfdbfe', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Calendar size={12} /> Scheduled {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString()}{quote.scheduled_time ? ` · ${quote.scheduled_time}` : ''}
+              </span>
+            )}
           </div>
         </Card>
 
@@ -215,6 +242,15 @@ export default function QuoteDetail() {
         {/* Danger zone */}
         <Btn onClick={handleDelete} variant="danger" fullWidth>Delete Quote</Btn>
       </div>
+
+      {/* Schedule sheet */}
+      <BottomSheet open={showSchedule} onClose={() => setShowSchedule(false)} title="Schedule Job">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Input label="Date" type="date" value={schedDate} onChange={setSchedDate} required />
+          <Input label="Time (optional)" type="time" value={schedTime} onChange={setSchedTime} />
+          <Btn onClick={handleSaveSchedule} variant="primary" fullWidth loading={scheduling} disabled={!schedDate}>Save Schedule</Btn>
+        </div>
+      </BottomSheet>
 
       {/* Share sheet */}
       <BottomSheet open={showShare} onClose={() => setShowShare(false)} title="Share Quote">
