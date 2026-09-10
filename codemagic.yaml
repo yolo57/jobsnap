@@ -27,6 +27,10 @@ workflows:
           npm install @capacitor/ios
           npx cap add ios || true
           npx cap sync ios
+      - name: Set export compliance flag
+        script: |
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
       - name: Set up keychain
         script: keychain initialize
       - name: Fetch signing files
