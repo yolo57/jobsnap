@@ -50,7 +50,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await supabase.from('profiles').update({
+    const { data, error } = await supabase.from('profiles').update({
       company_name: form.company_name,
       owner_name: form.owner_name,
       phone: form.phone,
@@ -62,10 +62,18 @@ export default function SettingsPage() {
       quote_notes: form.quote_notes,
       followups_enabled: form.followups_enabled,
     }).eq('id', user.id);
+    setSaving(false);
+    if (error) {
+      alert('Save failed: ' + error.message);
+      return;
+    }
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      alert('Save did not go through — please try again or contact support.');
+      return;
+    }
     await refreshProfile();
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-    setSaving(false);
   };
 
   const handleUpgrade = async (plan) => {
