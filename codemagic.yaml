@@ -7,7 +7,7 @@ workflows:
       node: 20
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.jobsnap.app
+        bundle_identifier: com.yolo57.jobsnap
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
