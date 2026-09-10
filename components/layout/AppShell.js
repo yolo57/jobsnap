@@ -77,9 +77,9 @@ export default function AppShell({ children }) {
           {/* FAB - Record */}
           <button
             onClick={() => router.push('/record')}
-            style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', width: 54, height: 54, borderRadius: 27, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: '3px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(37,99,235,0.45)', zIndex: 10, color: '#fff' }}
+            style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', width: 50, height: 50, borderRadius: 25, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: '3px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(37,99,235,0.35)', zIndex: 10, color: '#fff' }}
           >
-            <Mic size={24} strokeWidth={2.25} />
+            <Mic size={22} strokeWidth={2.25} />
           </button>
         </div>
       </div>
