@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useQuotes } from '../hooks/useQuotes';
 import AppShell from '../components/layout/AppShell';
@@ -10,7 +11,11 @@ export default function SchedulePage() {
   const { user } = useAuth();
   const { quotes, loading } = useQuotes();
 
-  if (!user) { router.replace('/login'); return null; }
+  useEffect(() => {
+    if (!user) router.replace('/login');
+  }, [user]);
+
+  if (!user) return null;
 
   const scheduled = (quotes || [])
     .filter(q => q.scheduled_date)
