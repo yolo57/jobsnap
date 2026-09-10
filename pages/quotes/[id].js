@@ -245,7 +245,7 @@ export default function QuoteDetail() {
 
       {/* Schedule sheet */}
       <BottomSheet open={showSchedule} onClose={() => setShowSchedule(false)} title="Schedule Job">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, maxWidth: '100%' }}>
           <Input label="Date" type="date" value={schedDate} onChange={setSchedDate} required />
           <Input label="Time (optional)" type="time" value={schedTime} onChange={setSchedTime} />
           <Btn onClick={handleSaveSchedule} variant="primary" fullWidth loading={scheduling} disabled={!schedDate}>Save Schedule</Btn>

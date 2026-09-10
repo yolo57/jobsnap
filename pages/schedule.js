@@ -61,11 +61,11 @@ export default function SchedulePage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {group.items.map(q => (
                   <Card key={q.id} onClick={() => router.push(`/quotes/${q.id}`)} style={{ cursor: 'pointer' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                          <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 800, margin: 0 }}>{q.customer_name || 'No customer'}</p>
-                          {q.scheduled_time && <span style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{q.scheduled_time}</span>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 800, margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.customer_name || 'No customer'}</p>
+                          {q.scheduled_time && <span style={{ flexShrink: 0, background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>{q.scheduled_time}</span>}
                         </div>
                         {q.address && (
                           <p style={{ color: '#64748b', fontSize: 12, margin: 0, display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -73,8 +73,10 @@ export default function SchedulePage() {
                           </p>
                         )}
                       </div>
-                      <p style={{ color: '#2563eb', fontSize: 15, fontWeight: 800, margin: 0, whiteSpace: 'nowrap' }}>${(q.total || 0).toLocaleString()}</p>
-                      <ChevronRight size={16} color="#cbd5e1" />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <p style={{ color: '#2563eb', fontSize: 15, fontWeight: 800, margin: 0, whiteSpace: 'nowrap' }}>${(q.total || 0).toLocaleString()}</p>
+                        <ChevronRight size={16} color="#cbd5e1" />
+                      </div>
                     </div>
                   </Card>
                 ))}

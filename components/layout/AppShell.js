@@ -24,7 +24,7 @@ export default function AppShell({ children }) {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: '#f8fafc', maxWidth: 480, margin: '0 auto', position: 'relative' }}>
       {/* Top bar */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, position: 'sticky', top: 0, zIndex: 50 }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: 'calc(14px + env(safe-area-inset-top)) 20px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, position: 'sticky', top: 0, zIndex: 50 }}>
         <JobSnapLogo size={28} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {profile?.plan && profile.plan !== 'free' && <Badge status={profile.plan} />}

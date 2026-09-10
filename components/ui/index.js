@@ -70,7 +70,7 @@ export function Btn({ children, onClick, variant = 'primary', size = 'md', fullW
 // ─── Input ────────────────────────────────────────────────────
 export function Input({ label, value, onChange, placeholder, type = 'text', multiline, required, error, hint, style = {}, inputStyle = {}, rows = 3, name, autoComplete }) {
   return (
-    <div style={{ marginBottom: 16, ...style }}>
+    <div style={{ marginBottom: 16, minWidth: 0, maxWidth: '100%', ...style }}>
       {label && (
         <label style={{ display: 'block', color: '#475569', fontSize: 12, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {label}{required && <span style={{ color: '#dc2626', marginLeft: 3 }}>*</span>}
@@ -83,7 +83,7 @@ export function Input({ label, value, onChange, placeholder, type = 'text', mult
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           rows={rows}
-          style={{ width: '100%', background: '#f1f5f9', border: `1.5px solid ${error ? '#fecaca' : '#e2e8f0'}`, borderRadius: 12, padding: '12px 14px', color: '#0f172a', fontSize: 15, outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif", ...inputStyle }}
+          style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', background: '#f1f5f9', border: `1.5px solid ${error ? '#fecaca' : '#e2e8f0'}`, borderRadius: 12, padding: '12px 14px', color: '#0f172a', fontSize: 15, outline: 'none', resize: 'vertical', lineHeight: 1.5, fontFamily: "'DM Sans', sans-serif", ...inputStyle }}
         />
       ) : (
         <input
@@ -93,7 +93,7 @@ export function Input({ label, value, onChange, placeholder, type = 'text', mult
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          style={{ width: '100%', background: '#f1f5f9', border: `1.5px solid ${error ? '#fecaca' : '#e2e8f0'}`, borderRadius: 12, padding: '12px 14px', color: '#0f172a', fontSize: 15, outline: 'none', fontFamily: "'DM Sans', sans-serif", ...inputStyle }}
+          style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', background: '#f1f5f9', border: `1.5px solid ${error ? '#fecaca' : '#e2e8f0'}`, borderRadius: 12, padding: '12px 14px', color: '#0f172a', fontSize: 15, outline: 'none', fontFamily: "'DM Sans', sans-serif", ...inputStyle }}
         />
       )}
       {error && <p style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</p>}
@@ -181,10 +181,10 @@ export function BottomSheet({ open, onClose, title, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(2px)' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: '#fff', borderRadius: '24px 24px 0 0', padding: '0 0 env(safe-area-inset-bottom)', maxHeight: '90vh', overflowY: 'auto', animation: 'slideUp 0.25s ease', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, maxWidth: 480, margin: '0 auto', background: '#fff', borderRadius: '24px 24px 0 0', padding: '0 0 env(safe-area-inset-bottom)', maxHeight: '90vh', overflowY: 'auto', overflowX: 'hidden', animation: 'slideUp 0.25s ease', boxShadow: '0 -8px 32px rgba(0,0,0,0.12)' }}>
         <div style={{ width: 36, height: 4, background: '#e2e8f0', borderRadius: 2, margin: '14px auto 0' }} />
         {title && <h3 style={{ color: '#0f172a', fontSize: 17, fontWeight: 800, margin: '16px 20px 0', fontFamily: "'Sora', sans-serif" }}>{title}</h3>}
-        <div style={{ padding: '16px 20px 24px' }}>{children}</div>
+        <div style={{ padding: '16px 20px 24px', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}>{children}</div>
       </div>
     </div>
   );
