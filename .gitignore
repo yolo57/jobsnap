@@ -27,6 +27,7 @@ yarn-error.log*
 .vercel
 
 # capacitor / android
+android/keystore.properties
 android/app/build/
 android/build/
 android/.gradle/
@@ -41,6 +42,9 @@ ios/App/Pods/
 ios/App/build/
 ios/App/App.xcworkspace
 ios/.build
+
+# brand source files (raw reference images, not needed at runtime)
+_brand_source/
 
 # editor
 .vscode/

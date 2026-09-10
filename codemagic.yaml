@@ -27,6 +27,9 @@ workflows:
           npm install @capacitor/ios
           npx cap add ios || true
           npx cap sync ios
+      - name: Generate app icons
+        script: |
+          npx capacitor-assets generate --ios --iconBackgroundColor "#2563EB" --iconBackgroundColorDark "#2563EB"
       - name: Set export compliance flag
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \

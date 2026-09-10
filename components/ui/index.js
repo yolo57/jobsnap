@@ -5,18 +5,7 @@ import { CheckCircle2, XCircle, Info, TrendingUp, Check } from 'lucide-react';
 export function JobSnapLogo({ size = 32, showText = true }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="40" height="40" rx="10" fill="#2563EB"/>
-        <rect x="7" y="14" width="26" height="17" rx="3" fill="white" fillOpacity="0.15"/>
-        <rect x="7" y="14" width="26" height="17" rx="3" stroke="white" strokeWidth="2"/>
-        <rect x="14" y="10" width="12" height="6" rx="2" stroke="white" strokeWidth="2"/>
-        {/* Document lines suggesting a quote/estimate */}
-        <line x1="13" y1="20" x2="22" y2="20" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="13" y1="24" x2="27" y2="24" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-        <line x1="13" y1="28" x2="20" y2="28" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-        {/* Lightning bolt - AI indicator */}
-        <path d="M25 17L22 22H25L22 27" stroke="#FCD34D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
+      <img src="/logo-icon.png" alt="JobSnap" width={size} height={size} style={{ width: size, height: size, borderRadius: size * 0.22, flexShrink: 0 }} />
       {showText && (
         <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: size * 0.55, color: '#1e3a5f', letterSpacing: '-0.5px' }}>
           Job<span style={{ color: '#2563eb' }}>Snap</span>

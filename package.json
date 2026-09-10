@@ -25,6 +25,7 @@
     "stripe": "^14.14.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "eslint": "^8",
     "eslint-config-next": "14.1.0"
   }
