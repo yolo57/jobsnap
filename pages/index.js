@@ -56,23 +56,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Pricing preview */}
-      <div style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '32px 24px' }}>
-        <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 20 }}>Simple pricing</p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {[
-            { name: 'Free', price: '$0', sub: '3 quotes/mo' },
-            { name: 'Pro', price: '$79', sub: 'Unlimited', highlight: true },
-            { name: 'Premium', price: '$129', sub: '+ Follow-ups' },
-          ].map(p => (
-            <div key={p.name} style={{ flex: 1, background: p.highlight ? '#2563eb' : '#fff', border: `1px solid ${p.highlight ? '#2563eb' : '#e2e8f0'}`, borderRadius: 14, padding: '16px 10px', textAlign: 'center' }}>
-              <p style={{ color: p.highlight ? 'rgba(255,255,255,0.7)' : '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', margin: '0 0 6px' }}>{p.name}</p>
-              <p style={{ color: p.highlight ? '#fff' : '#0f172a', fontSize: 20, fontWeight: 900, margin: '0 0 2px', fontFamily: "'Sora', sans-serif" }}>{p.price}<span style={{ fontSize: 11, fontWeight: 500 }}>/mo</span></p>
-              <p style={{ color: p.highlight ? 'rgba(255,255,255,0.7)' : '#94a3b8', fontSize: 11, margin: 0 }}>{p.sub}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

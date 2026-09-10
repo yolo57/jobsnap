@@ -67,7 +67,7 @@ export default function Dashboard() {
                   {remaining === 0 ? 'Upgrade to continue creating quotes' : 'Free plan · 3 quotes/month'}
                 </p>
               </div>
-              <Btn onClick={() => router.push('/billing')} size="sm" style={{ flexShrink: 0 }}>Upgrade</Btn>
+              <Btn onClick={() => router.push('/settings')} size="sm" style={{ flexShrink: 0 }}>Upgrade</Btn>
             </div>
           )}
 
