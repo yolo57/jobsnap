@@ -6,6 +6,7 @@ import AppShell from '../../components/layout/AppShell';
 import { Sparkles, Camera, X, Plus } from 'lucide-react';
 import { Card, Input, Btn, PageHeader, Spinner, UpgradeWall } from '../../components/ui';
 import { quotesRemaining } from '../../lib/stripe';
+import { openExternal } from '../../lib/openExternal';
 
 export default function NewQuote() {
   const router = useRouter();
@@ -147,7 +148,7 @@ export default function NewQuote() {
       body: JSON.stringify({ plan }),
     });
     const { url } = await res.json();
-    window.location.href = url;
+    openExternal(url);
   };
 
   if (!user) return null;

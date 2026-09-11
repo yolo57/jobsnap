@@ -7,6 +7,7 @@ import AppShell from '../components/layout/AppShell';
 import { Card, Input, Btn, PageHeader, Badge, Spinner } from '../components/ui';
 import { PLANS } from '../lib/stripe';
 import { getT } from '../lib/i18n';
+import { openExternal } from '../lib/openExternal';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -88,7 +89,7 @@ export default function SettingsPage() {
     });
     const { url, error } = await res.json();
     if (error) { alert(error); setUpgradingTo(null); return; }
-    window.location.href = url;
+    openExternal(url);
   };
 
   const handleSignOut = async () => {

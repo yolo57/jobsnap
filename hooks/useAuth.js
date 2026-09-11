@@ -134,6 +134,19 @@ export function AuthProvider({ children }) {
     if (token) await loadProfile(user.id, token);
   };
 
+  // Upgrading (Stripe) happens in the system browser, not inside the app's
+  // own WebView (Apple requires this for digital subscriptions). That means
+  // the person leaves the app entirely to pay, then comes back to it — so
+  // refresh their plan the moment the app becomes visible again, otherwise
+  // it would still show "Free" until some other action happened to refetch.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshProfile();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [user]);
+
   return (
     <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, getToken, refreshProfile, language, setLanguage }}>
       {children}
