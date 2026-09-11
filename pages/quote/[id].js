@@ -148,11 +148,13 @@ export default function PublicQuotePage({ quote }) {
             </button>
           )}
 
-          <div style={{ textAlign: 'center' }}>
-            <a href={`tel:${profile.phone}`} style={{ color: '#2563eb', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
-              Questions? Call {profile.phone}
-            </a>
-          </div>
+          {profile.phone && (
+            <div style={{ textAlign: 'center' }}>
+              <a href={`tel:${profile.phone}`} style={{ color: '#2563eb', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                Questions? Call {profile.phone}
+              </a>
+            </div>
+          )}
 
           <p style={{ textAlign: 'center', color: '#cbd5e1', fontSize: 11, marginTop: 32 }}>Powered by JobSnap</p>
         </div>
