@@ -42,7 +42,7 @@ export default function AppShell({ children }) {
       {/* Bottom nav — five tabs evenly spaced; record button sits off to the
           side as its own floating action button, not stacked into the row. */}
       <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, background: '#fff', borderTop: '1px solid #e2e8f0', zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -2px 12px rgba(0,0,0,0.06)' }}>
-        <div style={{ display: 'flex', position: 'relative' }}>
+        <div style={{ display: 'flex', position: 'relative', paddingRight: 64 }}>
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
@@ -60,13 +60,14 @@ export default function AppShell({ children }) {
           })}
         </div>
 
-        {/* Record FAB — floats above the top-right corner of the bar, clear
-            of every tab label, instead of hovering in the dead center. */}
+        {/* Record FAB — lives in a dedicated 64px gutter reserved on the
+            right (paddingRight above) so it never overlaps the Settings
+            tab's tap target, while still floating above the bar line. */}
         <button
           onClick={() => router.push('/record')}
-          style={{ position: 'absolute', top: -24, right: 14, width: 52, height: 52, borderRadius: 26, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: '3px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(37,99,235,0.4)', zIndex: 10, color: '#fff' }}
+          style={{ position: 'absolute', top: -22, right: 10, width: 48, height: 48, borderRadius: 24, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: '3px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(37,99,235,0.4)', zIndex: 10, color: '#fff' }}
         >
-          <Mic size={22} strokeWidth={2.25} />
+          <Mic size={21} strokeWidth={2.25} />
         </button>
       </div>
     </div>

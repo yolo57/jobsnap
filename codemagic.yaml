@@ -34,6 +34,12 @@ workflows:
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
+      - name: Add camera/microphone usage descriptions
+        script: |
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'JobSnap needs camera access to photograph job sites for your quotes.'" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'JobSnap needs camera access to photograph job sites for your quotes.'" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'JobSnap needs microphone access to record your job walkthrough for AI quoting.'" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'JobSnap needs microphone access to record your job walkthrough for AI quoting.'" ios/App/App/Info.plist
       - name: Set up keychain
         script: keychain initialize
       - name: Fetch signing files

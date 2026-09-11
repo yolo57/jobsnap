@@ -89,6 +89,7 @@ useEffect(() => {
       }, 1000);
     } catch (e) {
       setError(e.name === 'NotAllowedError' ? 'Camera/mic access denied. Please allow in browser settings.' : `Camera error: ${e.message}`);
+      setPhase(PHASE.error);
     }
   };
 
@@ -191,7 +192,7 @@ useEffect(() => {
       {/* Overlay */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', height: '100dvh' }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ padding: 'calc(16px + env(safe-area-inset-top)) 20px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: 12, fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>‹</button>
           <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 700, margin: 0, fontFamily: "'Sora', sans-serif" }}>Record Job Site</h2>
           {phase === PHASE.recording && (
@@ -261,7 +262,7 @@ useEffect(() => {
         )}
 
         {/* Bottom controls */}
-        <div style={{ padding: '24px 32px 48px', display: 'flex', justifyContent: 'center', gap: 24, alignItems: 'center' }}>
+        <div style={{ padding: '24px 32px calc(32px + env(safe-area-inset-bottom))', display: 'flex', justifyContent: 'center', gap: 24, alignItems: 'center' }}>
           {phase === PHASE.idle && (
             <button
               onClick={startRecording}
