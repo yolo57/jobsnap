@@ -31,16 +31,18 @@ export default function CustomersPage() {
   const handleAdd = async () => {
     if (!form.name) return;
     setSaving(true);
-    await supabase.from('customers').insert({ ...form, user_id: user.id });
+    const { error } = await supabase.from('customers').insert({ ...form, user_id: user.id });
+    setSaving(false);
+    if (error) { alert('Could not add client: ' + error.message); return; }
     await loadCustomers();
     setShowAdd(false);
     setForm({ name: '', phone: '', email: '', address: '' });
-    setSaving(false);
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this customer?')) return;
-    await supabase.from('customers').delete().eq('id', id);
+    const { error } = await supabase.from('customers').delete().eq('id', id);
+    if (error) { alert('Could not delete client: ' + error.message); return; }
     setSelected(null);
     loadCustomers();
   };
