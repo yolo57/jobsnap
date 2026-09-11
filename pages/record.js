@@ -85,7 +85,7 @@ useEffect(() => {
       timerRef.current = setInterval(() => {
         elapsed += 1;
         setElapsed(elapsed);
-        if (elapsed >= 30) stopAndProcess();
+        if (elapsed >= 600) stopAndProcess();
       }, 1000);
     } catch (e) {
       setError(e.name === 'NotAllowedError' ? 'Camera/mic access denied. Please allow in browser settings.' : `Camera error: ${e.message}`);
@@ -136,7 +136,7 @@ useEffect(() => {
       // Step 1: Transcribe via our server-side proxy (pages/api/transcribe.js).
       // The OpenAI API key stays server-side there and is never exposed to
       // the browser. The audio-only blob is small (well under Vercel's
-      // 4.5MB limit for a 30s clip), unlike the old video+audio recording.
+      // 4.5MB limit even at a full 10-minute cap), unlike the old video+audio recording.
       setStep('Transcribing your recording...');
       const formData = new FormData();
       formData.append('file', blob, `recording.${extFromMime(blob.type)}`);
