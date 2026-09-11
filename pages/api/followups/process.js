@@ -51,6 +51,7 @@ export default async function handler(req, res) {
             quoteTotal: quote.total,
             quoteUrl,
             daysSinceSent: 1,
+            replyTo: profile.email,
           });
           await supabase.from('quotes').update({ followup_sent_24h: true }).eq('id', quote.id);
           results.sent++;
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
             quoteTotal: quote.total,
             quoteUrl,
             daysSinceSent: 3,
+            replyTo: profile.email,
           });
           await supabase.from('quotes').update({ followup_sent_3d: true }).eq('id', quote.id);
           results.sent++;
@@ -87,6 +89,7 @@ export default async function handler(req, res) {
             quoteTotal: quote.total,
             quoteUrl,
             daysSinceSent: 7,
+            replyTo: profile.email,
           });
           await supabase.from('quotes').update({ followup_sent_7d: true }).eq('id', quote.id);
           results.sent++;
