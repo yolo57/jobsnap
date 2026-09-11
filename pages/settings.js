@@ -6,10 +6,12 @@ import { Check, Star } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import { Card, Input, Btn, PageHeader, Badge, Spinner } from '../components/ui';
 import { PLANS } from '../lib/stripe';
+import { getT } from '../lib/i18n';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, profile, refreshProfile, getToken } = useAuth();
+  const { user, profile, refreshProfile, getToken, language, setLanguage } = useAuth();
+  const t = getT(language);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -101,9 +103,9 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Settings" action={
+      <PageHeader title={t('settings_title')} action={
         <button onClick={handleSave} style={{ background: saved ? '#f0fdf4' : 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: saved ? '1px solid #bbf7d0' : 'none', borderRadius: 10, padding: '8px 16px', cursor: 'pointer', color: saved ? '#16a34a' : '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", transition: 'all 0.3s', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          {saved && <Check size={14} strokeWidth={3} />}{saved ? 'Saved' : 'Save'}
+          {saved && <Check size={14} strokeWidth={3} />}{saved ? t('saved') : t('save')}
         </button>
       } />
 
@@ -112,7 +114,7 @@ export default function SettingsPage() {
         <Card style={{ marginBottom: 20, padding: '18px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div>
-              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>Current Plan</p>
+              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>{t('current_plan')}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: '#0f172a', fontSize: 18, fontWeight: 800, fontFamily: "'Sora', sans-serif" }}>{planInfo?.name}</span>
                 <Badge status={plan} />
@@ -138,6 +140,37 @@ export default function SettingsPage() {
           {plan === 'pro' && (
             <Btn onClick={() => handleUpgrade('premium')} fullWidth variant="secondary" loading={upgradingTo === 'premium'}>Upgrade to Premium — $129/mo</Btn>
           )}
+        </Card>
+
+        {/* Language toggle */}
+        <Card style={{ marginBottom: 20, padding: '18px' }}>
+          <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: '0 0 3px' }}>{t('language')}</p>
+          <p style={{ color: '#64748b', fontSize: 12, margin: '0 0 12px' }}>{t('language_desc')}</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { code: 'en', label: 'English' },
+              { code: 'es', label: 'Español' },
+            ].map(opt => (
+              <button
+                key={opt.code}
+                onClick={() => setLanguage(opt.code)}
+                style={{
+                  flex: 1,
+                  padding: '10px 0',
+                  borderRadius: 10,
+                  border: language === opt.code ? '1.5px solid #2563eb' : '1.5px solid #e2e8f0',
+                  background: language === opt.code ? '#eff6ff' : '#fff',
+                  color: language === opt.code ? '#2563eb' : '#475569',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: 'pointer',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </Card>
 
         {/* Billing plans comparison */}
@@ -167,14 +200,14 @@ export default function SettingsPage() {
         )}
 
         {/* Company branding */}
-        <SectionHeader title="Company Branding" sub="Appears on all quotes and PDFs" />
+        <SectionHeader title={t('company_info')} sub="Appears on all quotes and PDFs" />
         <Card style={{ marginBottom: 20 }}>
           <div style={{ marginBottom: 16 }}>
             <p style={{ color: '#475569', fontSize: 12, fontWeight: 700, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Logo</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {form.logo_url && <img src={form.logo_url} alt="Logo" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '1px solid #e2e8f0' }} />}
               <label style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '9px 14px', color: '#2563eb', fontSize: 13, fontWeight: 700, cursor: uploadingLogo ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: uploadingLogo ? 0.6 : 1 }}>
-                {uploadingLogo ? 'Uploading...' : form.logo_url ? 'Change logo' : 'Upload logo'}
+                {uploadingLogo ? 'Uploading...' : form.logo_url ? t('change_logo') : t('upload_logo')}
                 <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ display: 'none' }} />
               </label>
               {form.logo_url && (
@@ -182,15 +215,15 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
-          <Input label="Company Name" value={form.company_name || ''} onChange={v => set('company_name', v)} placeholder="Jake's Contracting" />
-          <Input label="Your Name" value={form.owner_name || ''} onChange={v => set('owner_name', v)} placeholder="Jake Smith" />
-          <Input label="Phone" value={form.phone || ''} onChange={v => set('phone', v)} placeholder="555-0000" type="tel" />
-          <Input label="Email" value={form.email || ''} onChange={v => set('email', v)} placeholder="you@company.com" type="email" />
-          <Input label="License Number" value={form.license_number || ''} onChange={v => set('license_number', v)} placeholder="CA-12345" style={{ marginBottom: 0 }} />
+          <Input label={t('company_name')} value={form.company_name || ''} onChange={v => set('company_name', v)} placeholder="Jake's Contracting" />
+          <Input label={t('owner_name')} value={form.owner_name || ''} onChange={v => set('owner_name', v)} placeholder="Jake Smith" />
+          <Input label={t('phone')} value={form.phone || ''} onChange={v => set('phone', v)} placeholder="555-0000" type="tel" />
+          <Input label={t('email')} value={form.email || ''} onChange={v => set('email', v)} placeholder="you@company.com" type="email" />
+          <Input label={t('license_number')} value={form.license_number || ''} onChange={v => set('license_number', v)} placeholder="CA-12345" style={{ marginBottom: 0 }} />
         </Card>
 
         {/* Quote defaults */}
-        <SectionHeader title="Quote Defaults" />
+        <SectionHeader title={t('billing_defaults')} />
         <Card style={{ marginBottom: 20 }}>
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -200,12 +233,12 @@ export default function SettingsPage() {
             <input type="number" value={form.tax_rate || 0} onChange={e => set('tax_rate', e.target.value)} min="0" max="30" step="0.1" style={{ width: '100%', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '12px 14px', color: '#0f172a', fontSize: 15, fontFamily: "'DM Sans', sans-serif", outline: 'none' }} />
             <p style={{ color: '#94a3b8', fontSize: 11, margin: '6px 0 0' }}>Applied automatically to new estimates. You can override it per-quote at save time.</p>
           </div>
-          <Input label="Payment Terms" value={form.payment_terms || ''} onChange={v => set('payment_terms', v)} placeholder="Due upon completion" />
-          <Input label="Default Quote Notes" value={form.quote_notes || ''} onChange={v => set('quote_notes', v)} placeholder="Thank you for your business!" multiline style={{ marginBottom: 0 }} />
+          <Input label={t('payment_terms')} value={form.payment_terms || ''} onChange={v => set('payment_terms', v)} placeholder="Due upon completion" />
+          <Input label={t('quote_notes')} value={form.quote_notes || ''} onChange={v => set('quote_notes', v)} placeholder="Thank you for your business!" multiline style={{ marginBottom: 0 }} />
         </Card>
 
         {/* Follow-ups toggle (Premium only) */}
-        <SectionHeader title="Auto Follow-Ups" sub="Premium feature" />
+        <SectionHeader title={t('follow_ups')} sub="Premium feature" />
         <Card style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div>
@@ -229,9 +262,9 @@ export default function SettingsPage() {
         </Card>
 
         <Btn onClick={handleSave} fullWidth size="lg" loading={saving} style={{ marginBottom: 12 }}>
-          {saved && <Check size={16} strokeWidth={3} />}{saved ? 'Saved!' : 'Save Settings'}
+          {saved && <Check size={16} strokeWidth={3} />}{saved ? t('saved') : t('save')}
         </Btn>
-        <Btn onClick={handleSignOut} fullWidth variant="ghost">Sign Out</Btn>
+        <Btn onClick={handleSignOut} fullWidth variant="ghost">{t('sign_out')}</Btn>
 
         <p style={{ textAlign: 'center', color: '#cbd5e1', fontSize: 11, marginTop: 24 }}>
           JobSnap v2.0 · {user?.email}

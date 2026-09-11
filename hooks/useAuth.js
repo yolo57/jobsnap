@@ -24,6 +24,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [language, setLanguageState] = useState('en');
+
+  useEffect(() => {
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('jobsnap_lang') : null;
+      if (stored) setLanguageState(stored);
+    } catch (e) {}
+  }, []);
 
   const loadProfile = async (userId, token) => {
     try {
@@ -34,9 +42,37 @@ export function AuthProvider({ children }) {
         },
       });
       const data = await res.json();
-      if (data && data[0]) setProfile(data[0]);
+      if (data && data[0]) {
+        setProfile(data[0]);
+        if (data[0].language) {
+          setLanguageState(data[0].language);
+          try { localStorage.setItem('jobsnap_lang', data[0].language); } catch (e) {}
+        }
+      }
     } catch (e) {
       console.error('Profile load error:', e);
+    }
+  };
+
+  const setLanguage = async (lang) => {
+    setLanguageState(lang);
+    try { localStorage.setItem('jobsnap_lang', lang); } catch (e) {}
+    setProfile(p => (p ? { ...p, language: lang } : p));
+    if (!user) return;
+    try {
+      const token = getToken();
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ language: lang }),
+      });
+    } catch (e) {
+      console.error('Language save error:', e);
     }
   };
 
@@ -99,7 +135,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, getToken, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, getToken, refreshProfile, language, setLanguage }}>
       {children}
     </AuthContext.Provider>
   );
