@@ -147,7 +147,8 @@ export default function NewQuote() {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan }),
     });
-    const { url } = await res.json();
+    const { url, error } = await res.json();
+    if (error || !url) { alert(error || 'Could not start checkout. Please try again.'); return; }
     openExternal(url);
   };
 
@@ -162,7 +163,7 @@ export default function NewQuote() {
 
   return (
     <AppShell>
-      {showUpgrade && <UpgradeWall plan={profile?.plan} quotesUsed={profile?.quotes_used_this_month} onUpgrade={handleUpgrade} />}
+      {showUpgrade && <UpgradeWall plan={profile?.plan} quotesUsed={profile?.quotes_used_this_month} onUpgrade={handleUpgrade} onClose={() => { setShowUpgrade(false); router.push('/dashboard'); }} />}
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <PageHeader title="New Estimate" onBack={() => router.back()} action={

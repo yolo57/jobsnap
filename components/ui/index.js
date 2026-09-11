@@ -197,10 +197,15 @@ export function Toast({ message, type = 'success', onDismiss }) {
 }
 
 // ─── Upgrade wall ──────────────────────────────────────────────
-export function UpgradeWall({ plan, quotesUsed, onUpgrade }) {
+export function UpgradeWall({ plan, quotesUsed, onUpgrade, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 150, background: 'rgba(15,23,42,0.7)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '32px 24px 48px', width: '100%', maxWidth: 480, animation: 'slideUp 0.3s ease' }}>
+      <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', padding: '32px 24px 48px', width: '100%', maxWidth: 480, animation: 'slideUp 0.3s ease', position: 'relative' }}>
+        {onClose && (
+          <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', top: 16, right: 16, width: 32, height: 32, borderRadius: 16, border: 'none', background: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>
+            ✕
+          </button>
+        )}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><TrendingUp size={44} color="#2563eb" strokeWidth={2} /></div>
           <h2 style={{ color: '#0f172a', fontSize: 22, fontWeight: 800, margin: '0 0 8px', fontFamily: "'Sora', sans-serif" }}>You've used all 3 free quotes</h2>
