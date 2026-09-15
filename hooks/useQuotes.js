@@ -50,10 +50,14 @@ export function useQuotes() {
 
   const deleteQuote = async (id) => {
     const token = await getToken();
-    await fetch(`/api/quotes/${id}`, {
+    const res = await fetch(`/api/quotes/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (!res.ok) {
+      const result = await res.json().catch(() => ({}));
+      throw result;
+    }
     setQuotes(q => q.filter(x => x.id !== id));
   };
 

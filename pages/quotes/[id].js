@@ -49,9 +49,16 @@ export default function QuoteDetail() {
 
   const handleStatus = async (status) => {
     setUpdating(true);
-    const updated = await updateQuote(quote.id, { status });
-    setQuote(updated);
-    setUpdating(false);
+    try {
+      const updated = await updateQuote(quote.id, { status });
+      setQuote(updated);
+      return updated;
+    } catch (e) {
+      alert('Could not update status: ' + (e.error || e.message || 'Unknown error'));
+      return null;
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleToggleFollowup = async () => {
@@ -59,8 +66,12 @@ export default function QuoteDetail() {
       alert('Automated follow-ups are a Premium feature. Upgrade to enable.');
       return;
     }
-    const updated = await updateQuote(quote.id, { followup_enabled: !quote.followup_enabled });
-    setQuote(updated);
+    try {
+      const updated = await updateQuote(quote.id, { followup_enabled: !quote.followup_enabled });
+      setQuote(updated);
+    } catch (e) {
+      alert('Could not update follow-ups: ' + (e.error || e.message || 'Unknown error'));
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -70,8 +81,12 @@ export default function QuoteDetail() {
 
   const handleDelete = async () => {
     if (!confirm('Delete this quote? This cannot be undone.')) return;
-    await deleteQuote(quote.id);
-    router.push('/quotes');
+    try {
+      await deleteQuote(quote.id);
+      router.push('/quotes');
+    } catch (e) {
+      alert('Could not delete quote: ' + (e.error || e.message || 'Unknown error'));
+    }
   };
 
   const handleCopyLink = () => {
@@ -90,15 +105,19 @@ export default function QuoteDetail() {
         navigator.clipboard.writeText(data.url);
         setCopiedSub(true);
         setTimeout(() => setCopiedSub(false), 2500);
+      } else {
+        alert('Could not get crew link: ' + (data.error || 'Unknown error'));
       }
+    } catch (e) {
+      alert('Could not get crew link: ' + e.message);
     } finally {
       setGettingSubLink(false);
     }
   };
 
   const handleSend = async () => {
-    await handleStatus('Sent');
-    setShowShare(true);
+    const updated = await handleStatus('Sent');
+    if (updated) setShowShare(true);
   };
 
   const handleSaveSchedule = async () => {
@@ -193,7 +212,7 @@ export default function QuoteDetail() {
               <a.Icon size={15} /> {a.label}
             </Btn>
           ))}
-          <Btn onClick={async () => { if (quote.status === 'Draft') await handleStatus('Sent'); setShowShare(true); }} variant="secondary" size="sm"><Link2 size={15} /> Share</Btn>
+          <Btn onClick={async () => { if (quote.status === 'Draft') { const updated = await handleStatus('Sent'); if (!updated) return; } setShowShare(true); }} variant="secondary" size="sm"><Link2 size={15} /> Share</Btn>
           <Btn onClick={handleDownloadPDF} variant="secondary" size="sm"><FileText size={15} /> PDF</Btn>
           <Btn onClick={() => handleTranslate(quote.language === 'es' ? 'en' : 'es')} variant="secondary" size="sm" loading={translating}>
             <Globe size={15} /> {quote.language === 'es' ? 'Translate to English' : 'Translate to Español'}

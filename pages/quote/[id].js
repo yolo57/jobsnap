@@ -110,17 +110,25 @@ export default function PublicQuotePage({ quote }) {
 
   const handleApprove = async () => {
     setApproving(true);
-    const res = await fetch(`/api/quotes/${quote.id}/approve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signatureData, signerName: signerName || null }),
-    });
-    if (res.ok) {
-      setApproved(true);
-      setShowSignStep(false);
-      if (signatureData) setSignedInfo({ name: signerName, at: new Date().toISOString() });
+    try {
+      const res = await fetch(`/api/quotes/${quote.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signatureData, signerName: signerName || null }),
+      });
+      if (res.ok) {
+        setApproved(true);
+        setShowSignStep(false);
+        if (signatureData) setSignedInfo({ name: signerName, at: new Date().toISOString() });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(`Couldn't approve this estimate: ${data.error || 'Please try again, or call to let them know.'}`);
+      }
+    } catch (e) {
+      alert("Couldn't approve this estimate — check your connection and try again.");
+    } finally {
+      setApproving(false);
     }
-    setApproving(false);
   };
 
   return (

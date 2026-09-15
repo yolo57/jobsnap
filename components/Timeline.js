@@ -83,7 +83,12 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
         setEntries(e => [...e, entry]);
         setText('');
         setPendingPhotos([]);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(`Couldn't send that: ${data.error || 'Please try again.'}`);
       }
+    } catch (e) {
+      alert("Couldn't send that — check your connection and try again.");
     } finally {
       setSending(false);
     }
