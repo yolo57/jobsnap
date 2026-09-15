@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { sendReviewRequestEmail, sendScheduleEmail } from '../../../lib/email';
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && !req.headers.authorization) {
     const { data, error } = await supabase.from('quotes').select('*, profiles(company_name, phone, email, logo_url, owner_name, license_number, payment_terms, quote_notes)').eq('id', id).single();
     if (error || !data) return res.status(404).json({ error: 'Quote not found' });
-    if (!['Sent', 'Approved', 'Rejected'].includes(data.status)) return res.status(403).json({ error: 'Not available' });
+    if (!['Sent', 'Approved', 'Rejected', 'Completed'].includes(data.status)) return res.status(403).json({ error: 'Not available' });
     return res.status(200).json(data);
   }
 
@@ -58,9 +59,54 @@ export default async function handler(req, res) {
     }
     if (updates.status === 'Sent' && !updates.sent_at) updates.sent_at = new Date().toISOString();
     if (updates.status === 'Approved') updates.approved_at = new Date().toISOString();
+    if (updates.status === 'Completed') updates.completed_at = new Date().toISOString();
 
     const { data, error } = await supabase.from('quotes').update(updates).eq('id', id).eq('user_id', user.id).select().single();
     if (error) return res.status(500).json({ error: error.message });
+
+    // Job just marked complete — fire off a review request to the customer, if a review link is set.
+    if (updates.status === 'Completed' && data.customer_email) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('company_name, owner_name, email, review_link').eq('id', user.id).single();
+        if (profile?.review_link) {
+          await sendReviewRequestEmail({
+            to: data.customer_email,
+            customerName: data.customer_name || 'there',
+            contractorName: profile.owner_name || profile.company_name,
+            companyName: profile.company_name,
+            reviewLink: profile.review_link,
+            replyTo: profile.email,
+          });
+          await supabase.from('quotes').update({ review_requested_at: new Date().toISOString() }).eq('id', id);
+        }
+      } catch (e) {
+        // Don't fail the status update if the email fails — just log it.
+        console.error('Review request email failed:', e.message);
+      }
+    }
+
+    // Job just got a scheduled date — let the customer know.
+    if (updates.scheduled_date && data.customer_email) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('company_name, owner_name, email').eq('id', user.id).single();
+        await sendScheduleEmail({
+          to: data.customer_email,
+          customerName: data.customer_name || 'there',
+          contractorName: profile?.owner_name || profile?.company_name,
+          companyName: profile?.company_name,
+          scheduledDate: data.scheduled_date,
+          scheduledTime: data.scheduled_time,
+          address: data.address,
+          quoteUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/quote/${data.id}`,
+          replyTo: profile?.email,
+        });
+        await supabase.from('quotes').update({ schedule_notified_at: new Date().toISOString() }).eq('id', id);
+      } catch (e) {
+        // Don't fail the schedule save if the email fails — just log it.
+        console.error('Schedule notification email failed:', e.message);
+      }
+    }
+
     return res.status(200).json(data);
   }
 

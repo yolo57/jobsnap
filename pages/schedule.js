@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useQuotes } from '../hooks/useQuotes';
 import AppShell from '../components/layout/AppShell';
 import { Card, PageHeader, EmptyState, Spinner } from '../components/ui';
-import { Calendar, MapPin, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, ChevronRight, HardHat } from 'lucide-react';
 
 export default function SchedulePage() {
   const router = useRouter();
@@ -70,6 +70,11 @@ export default function SchedulePage() {
                         {q.address && (
                           <p style={{ color: '#64748b', fontSize: 12, margin: 0, display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             <MapPin size={12} style={{ flexShrink: 0 }} /> {q.address}
+                          </p>
+                        )}
+                        {q.assigned_to && (
+                          <p style={{ color: '#2563eb', fontSize: 12, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                            <HardHat size={12} style={{ flexShrink: 0 }} /> {q.assigned_to}
                           </p>
                         )}
                       </div>

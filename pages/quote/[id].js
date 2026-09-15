@@ -1,6 +1,91 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
-import { Phone, Mail, CheckCircle2, Check } from 'lucide-react';
+import { Phone, Mail, CheckCircle2, Check, Eraser, PenLine, Calendar } from 'lucide-react';
+import Timeline from '../../components/Timeline';
+
+function SignaturePad({ onChange }) {
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
+  const hasDrawn = useRef(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * ratio;
+    canvas.height = canvas.clientHeight * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0f172a';
+  }, []);
+
+  const getPos = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const point = e.touches ? e.touches[0] : e;
+    return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+  };
+
+  const start = (e) => {
+    e.preventDefault();
+    drawing.current = true;
+    const { x, y } = getPos(e);
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const move = (e) => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const { x, y } = getPos(e);
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    hasDrawn.current = true;
+  };
+
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    if (hasDrawn.current) onChange(canvasRef.current.toDataURL('image/png'));
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn.current = false;
+    onChange(null);
+  };
+
+  return (
+    <div>
+      <div style={{ position: 'relative', border: '1.5px dashed #cbd5e1', borderRadius: 12, background: '#f8fafc', height: 140 }}>
+        <canvas
+          ref={canvasRef}
+          style={{ width: '100%', height: '100%', touchAction: 'none', cursor: 'crosshair' }}
+          onMouseDown={start}
+          onMouseMove={move}
+          onMouseUp={end}
+          onMouseLeave={end}
+          onTouchStart={start}
+          onTouchMove={move}
+          onTouchEnd={end}
+        />
+        {!hasDrawn.current && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: '#cbd5e1', fontSize: 13, gap: 6 }}>
+            <PenLine size={14} /> Sign here
+          </div>
+        )}
+      </div>
+      <button onClick={clear} style={{ marginTop: 8, background: 'none', border: 'none', color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: 0 }}>
+        <Eraser size={12} /> Clear
+      </button>
+    </div>
+  );
+}
 
 export async function getServerSideProps({ params }) {
   try {
@@ -16,13 +101,25 @@ export async function getServerSideProps({ params }) {
 
 export default function PublicQuotePage({ quote }) {
   const [approving, setApproving] = useState(false);
-  const [approved, setApproved] = useState(quote.status === 'Approved');
+  const [approved, setApproved] = useState(quote.status === 'Approved' || quote.status === 'Completed');
+  const [showSignStep, setShowSignStep] = useState(false);
+  const [signerName, setSignerName] = useState('');
+  const [signatureData, setSignatureData] = useState(null);
+  const [signedInfo, setSignedInfo] = useState(quote.signature_name ? { name: quote.signature_name, at: quote.signed_at } : null);
   const profile = quote.profiles || {};
 
   const handleApprove = async () => {
     setApproving(true);
-    await fetch(`/api/quotes/${quote.id}/approve`, { method: 'POST' });
-    setApproved(true);
+    const res = await fetch(`/api/quotes/${quote.id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signatureData, signerName: signerName || null }),
+    });
+    if (res.ok) {
+      setApproved(true);
+      setShowSignStep(false);
+      if (signatureData) setSignedInfo({ name: signerName, at: new Date().toISOString() });
+    }
     setApproving(false);
   };
 
@@ -67,9 +164,18 @@ export default function PublicQuotePage({ quote }) {
             </div>
 
             {approved && (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', marginBottom: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
-                <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
-                <p style={{ color: '#16a34a', fontSize: 14, fontWeight: 700, margin: 0 }}>Quote Approved — we'll be in touch soon!</p>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
+                  <p style={{ color: '#16a34a', fontSize: 14, fontWeight: 700, margin: 0 }}>
+                    {quote.status === 'Completed' ? 'Job Completed — thank you!' : "Quote Approved — we'll be in touch soon!"}
+                  </p>
+                </div>
+                {signedInfo?.name && (
+                  <p style={{ color: '#15803d', fontSize: 12, margin: '6px 0 0 30px' }}>
+                    Signed by {signedInfo.name}{signedInfo.at ? ` on ${new Date(signedInfo.at).toLocaleDateString()}` : ''}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -113,6 +219,22 @@ export default function PublicQuotePage({ quote }) {
             </div>
           </div>
 
+          {/* Scheduled job banner */}
+          {quote.scheduled_date && (
+            <div style={{ background: '#eff6ff', borderRadius: 16, padding: '16px 20px', border: '1px solid #bfdbfe', marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <Calendar size={20} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <p style={{ color: '#1e3a5f', fontSize: 15, fontWeight: 800, margin: '0 0 2px', fontFamily: "'Sora', sans-serif" }}>
+                    Job scheduled for {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                    {quote.scheduled_time ? ` at ${quote.scheduled_time}` : ''}
+                  </p>
+                  {quote.address && <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{quote.address}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Job Photos */}
           {quote.photos && quote.photos.length > 0 && (
             <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', border: '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
@@ -138,14 +260,42 @@ export default function PublicQuotePage({ quote }) {
           )}
 
           {/* Approve CTA */}
-          {!approved && quote.status === 'Sent' && (
+          {!approved && quote.status === 'Sent' && !showSignStep && (
             <button
-              onClick={handleApprove}
-              disabled={approving}
+              onClick={() => setShowSignStep(true)}
               style={{ width: '100%', background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none', borderRadius: 16, padding: '18px', cursor: 'pointer', color: '#fff', fontSize: 17, fontWeight: 800, fontFamily: "'Sora', sans-serif", boxShadow: '0 4px 16px rgba(22,163,74,0.3)', marginBottom: 12 }}
             >
-              {approving ? 'Approving...' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Check size={18} strokeWidth={3} /> Approve This Estimate</span>}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Check size={18} strokeWidth={3} /> Approve This Estimate</span>
             </button>
+          )}
+
+          {!approved && quote.status === 'Sent' && showSignStep && (
+            <div style={{ background: '#fff', borderRadius: 16, padding: '18px 20px', border: '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 800, margin: '0 0 12px', fontFamily: "'Sora', sans-serif" }}>Sign to approve</p>
+              <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Your full name</label>
+              <input
+                value={signerName}
+                onChange={e => setSignerName(e.target.value)}
+                placeholder="Jane Doe"
+                style={{ width: '100%', boxSizing: 'border-box', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 14px', fontSize: 14, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}
+              />
+              <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Signature</label>
+              <SignaturePad onChange={setSignatureData} />
+              <button
+                onClick={handleApprove}
+                disabled={approving || !signatureData || !signerName.trim()}
+                style={{ width: '100%', marginTop: 16, background: (!signatureData || !signerName.trim()) ? '#cbd5e1' : 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none', borderRadius: 14, padding: '16px', cursor: (!signatureData || !signerName.trim()) ? 'default' : 'pointer', color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: "'Sora', sans-serif" }}
+              >
+                {approving ? 'Approving...' : 'Confirm & Approve'}
+              </button>
+            </div>
+          )}
+
+          {['Sent', 'Approved', 'Completed'].includes(quote.status) && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Job Updates</p>
+              <Timeline quoteId={quote.id} role="customer" authorName={quote.customer_name || 'Customer'} />
+            </div>
           )}
 
           {profile.phone && (

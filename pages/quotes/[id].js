@@ -3,8 +3,10 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
-import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar } from 'lucide-react';
+import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar, Flag } from 'lucide-react';
 import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet, Input } from '../../components/ui';
+import Timeline from '../../components/Timeline';
+import { HardHat } from 'lucide-react';
 
 export default function QuoteDetail() {
   const router = useRouter();
@@ -19,7 +21,11 @@ export default function QuoteDetail() {
   const [showSchedule, setShowSchedule] = useState(false);
   const [schedDate, setSchedDate] = useState('');
   const [schedTime, setSchedTime] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
   const [scheduling, setScheduling] = useState(false);
+  const [copiedSub, setCopiedSub] = useState(false);
+  const [gettingSubLink, setGettingSubLink] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -29,9 +35,12 @@ export default function QuoteDetail() {
         setQuote(q);
         setSchedDate(q.scheduled_date || '');
         setSchedTime(q.scheduled_time || '');
+        setAssignedTo(q.assigned_to || '');
       }
     }
   }, [id, quotes, user]);
+
+  useEffect(() => { getToken().then(setAuthToken); }, [getToken]);
 
   if (!user || !quote) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner size={32} /></div>;
 
@@ -71,6 +80,22 @@ export default function QuoteDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopySubLink = async () => {
+    setGettingSubLink(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/quotes/${quote.id}/sub-link`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok) {
+        navigator.clipboard.writeText(data.url);
+        setCopiedSub(true);
+        setTimeout(() => setCopiedSub(false), 2500);
+      }
+    } finally {
+      setGettingSubLink(false);
+    }
+  };
+
   const handleSend = async () => {
     await handleStatus('Sent');
     setShowShare(true);
@@ -80,7 +105,7 @@ export default function QuoteDetail() {
     if (!schedDate) return;
     setScheduling(true);
     try {
-      const updated = await updateQuote(quote.id, { scheduled_date: schedDate, scheduled_time: schedTime || null });
+      const updated = await updateQuote(quote.id, { scheduled_date: schedDate, scheduled_time: schedTime || null, assigned_to: assignedTo || null });
       setQuote(updated);
       setShowSchedule(false);
     } catch (e) {
@@ -109,10 +134,16 @@ export default function QuoteDetail() {
     }
   };
 
+  const handleMarkComplete = async () => {
+    if (profile?.review_link && !confirm('Mark this job complete? A review request will be emailed to the customer automatically.')) return;
+    await handleStatus('Completed');
+  };
+
   const STATUS_ACTIONS = {
     Draft: [{ label: 'Send Quote', Icon: Send, action: handleSend, variant: 'primary' }, { label: 'Edit', Icon: Pencil, action: () => router.push(`/quotes/${quote.id}/edit`), variant: 'secondary' }],
     Sent: [{ label: 'Mark Approved', Icon: CheckCircle2, action: () => handleStatus('Approved'), variant: 'success' }, { label: 'Mark Rejected', Icon: XCircle, action: () => handleStatus('Rejected'), variant: 'danger' }],
-    Approved: [{ label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'primary' }, { label: quote.scheduled_date ? 'Reschedule' : 'Schedule Job', Icon: Calendar, action: () => setShowSchedule(true), variant: 'secondary' }],
+    Approved: [{ label: 'Mark Job Complete', Icon: Flag, action: handleMarkComplete, variant: 'success' }, { label: quote.scheduled_date ? 'Reschedule' : 'Schedule Job', Icon: Calendar, action: () => setShowSchedule(true), variant: 'secondary' }, { label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'secondary' }],
+    Completed: [{ label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'primary' }],
     Rejected: [{ label: 'Duplicate', Icon: CopyIcon, action: () => {}, variant: 'secondary' }],
   };
 
@@ -145,6 +176,11 @@ export default function QuoteDetail() {
             {quote.scheduled_date && (
               <span style={{ color: '#bfdbfe', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <Calendar size={12} /> Scheduled {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString()}{quote.scheduled_time ? ` · ${quote.scheduled_time}` : ''}
+              </span>
+            )}
+            {quote.assigned_to && (
+              <span style={{ color: '#bfdbfe', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <HardHat size={12} /> {quote.assigned_to}
               </span>
             )}
           </div>
@@ -217,6 +253,44 @@ export default function QuoteDetail() {
           </Card>
         )}
 
+        {/* Signature */}
+        {quote.signature_data && (
+          <Card style={{ marginBottom: 16 }}>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Customer Signature</p>
+            <img src={quote.signature_data} alt="Customer signature" style={{ maxWidth: 220, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 8 }} />
+            <p style={{ color: '#64748b', fontSize: 12, margin: '8px 0 0' }}>
+              Signed by {quote.signature_name || 'customer'}{quote.signed_at ? ` on ${new Date(quote.signed_at).toLocaleDateString()}` : ''}
+            </p>
+          </Card>
+        )}
+
+        {/* Review request status */}
+        {quote.status === 'Completed' && (
+          <Card style={{ marginBottom: 16 }}>
+            <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: '0 0 3px' }}>Review Request</p>
+            <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>
+              {quote.review_requested_at
+                ? `Sent to customer on ${new Date(quote.review_requested_at).toLocaleDateString()}`
+                : profile?.review_link
+                  ? 'Not sent — check your review link in Settings.'
+                  : 'Add your review link in Settings to auto-send these.'}
+            </p>
+          </Card>
+        )}
+
+        {/* Job Timeline */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Job Timeline</p>
+            <button onClick={handleCopySubLink} disabled={gettingSubLink} style={{ background: copiedSub ? '#f0fdf4' : '#eff6ff', border: `1px solid ${copiedSub ? '#bbf7d0' : '#bfdbfe'}`, borderRadius: 8, padding: '5px 10px', color: copiedSub ? '#16a34a' : '#2563eb', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <HardHat size={13} /> {copiedSub ? 'Link Copied!' : 'Copy Crew Link'}
+            </button>
+          </div>
+          {authToken && (
+            <Timeline quoteId={quote.id} role="contractor" authToken={authToken} authorName={profile?.owner_name || profile?.company_name} canLogUpdates />
+          )}
+        </div>
+
         {/* Job Photos */}
         {quote.photos && quote.photos.length > 0 && (
           <Card style={{ marginBottom: 16 }}>
@@ -248,7 +322,9 @@ export default function QuoteDetail() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, maxWidth: '100%' }}>
           <Input label="Date" type="date" value={schedDate} onChange={setSchedDate} required />
           <Input label="Time (optional)" type="time" value={schedTime} onChange={setSchedTime} />
+          <Input label="Assigned to (optional)" placeholder="e.g. your name or crew" value={assignedTo} onChange={setAssignedTo} />
           <Btn onClick={handleSaveSchedule} variant="primary" fullWidth loading={scheduling} disabled={!schedDate}>Save Schedule</Btn>
+          {quote.customer_email && <p style={{ color: '#94a3b8', fontSize: 12, margin: 0, textAlign: 'center' }}>The customer will get an email with the date{schedTime ? ' and time' : ''}.</p>}
         </div>
       </BottomSheet>
 

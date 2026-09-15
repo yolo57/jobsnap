@@ -64,6 +64,7 @@ export default function SettingsPage() {
       payment_terms: form.payment_terms,
       quote_notes: form.quote_notes,
       followups_enabled: form.followups_enabled,
+      review_link: form.review_link,
     }).eq('id', user.id);
     setSaving(false);
     if (error) {
@@ -236,6 +237,21 @@ export default function SettingsPage() {
           </div>
           <Input label={t('payment_terms')} value={form.payment_terms || ''} onChange={v => set('payment_terms', v)} placeholder="Due upon completion" />
           <Input label={t('quote_notes')} value={form.quote_notes || ''} onChange={v => set('quote_notes', v)} placeholder="Thank you for your business!" multiline style={{ marginBottom: 0 }} />
+        </Card>
+
+        {/* Review requests */}
+        <SectionHeader title="Review Requests" sub="Sent when you mark a job complete" />
+        <Card style={{ marginBottom: 20 }}>
+          <Input
+            label="Your review link"
+            value={form.review_link || ''}
+            onChange={v => set('review_link', v)}
+            placeholder="https://g.page/r/your-business/review"
+            style={{ marginBottom: 0 }}
+          />
+          <p style={{ color: '#94a3b8', fontSize: 11, margin: '6px 0 0' }}>
+            Paste your Google Business (or Yelp/Facebook) review link. When you mark a job "Complete," we'll automatically email the customer asking for a review at this link. Leave blank to turn this off.
+          </p>
         </Card>
 
         {/* Follow-ups toggle (Premium only) */}

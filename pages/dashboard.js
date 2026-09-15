@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 import { getT } from '../lib/i18n';
 import { useQuotes } from '../hooks/useQuotes';
-import { Ban, Zap, Mic, FileText, Users } from 'lucide-react';
+import { Ban, Zap, Mic, FileText, Users, Calendar, MapPin, HardHat } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import { Card, Badge, Btn, Spinner } from '../components/ui';
 import { PLANS, quotesRemaining } from '../lib/stripe';
@@ -29,6 +29,11 @@ export default function Dashboard() {
 
   const remaining = profile ? quotesRemaining(profile) : 0;
   const plan = profile?.plan || 'free';
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todaysJobs = quotes
+    .filter(q => q.scheduled_date === todayStr)
+    .sort((a, b) => (a.scheduled_time || '').localeCompare(b.scheduled_time || ''));
 
   return (
     <AppShell>
@@ -98,6 +103,42 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
+
+          {/* Today's jobs */}
+          {todaysJobs.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h2 style={{ color: '#0f172a', fontSize: 16, fontWeight: 800, margin: 0, fontFamily: "'Sora', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Calendar size={16} color="#2563eb" /> Today's Jobs
+                </h2>
+                <button onClick={() => router.push('/schedule')} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{t('view_all')}</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {todaysJobs.map(q => (
+                  <Card key={q.id} onClick={() => router.push(`/quotes/${q.id}`)} style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.customer_name || 'No customer'}</p>
+                          {q.scheduled_time && <span style={{ flexShrink: 0, background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{q.scheduled_time}</span>}
+                        </div>
+                        {q.address && (
+                          <p style={{ color: '#64748b', fontSize: 12, margin: 0, display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <MapPin size={12} style={{ flexShrink: 0 }} /> {q.address}
+                          </p>
+                        )}
+                        {q.assigned_to && (
+                          <p style={{ color: '#2563eb', fontSize: 12, margin: '2px 0 0', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                            <HardHat size={12} style={{ flexShrink: 0 }} /> {q.assigned_to}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Recent quotes */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

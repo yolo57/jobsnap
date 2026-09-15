@@ -112,6 +112,7 @@ export function Card({ children, style = {}, onClick, padding = '18px 20px' }) {
 export function Badge({ status, size = 'sm' }) {
   const map = {
     Approved: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
+    Completed: { bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe' },
     Sent: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
     Draft: { bg: '#f5f3ff', color: '#7c3aed', border: '#ddd6fe' },
     Rejected: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
