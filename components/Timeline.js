@@ -46,18 +46,25 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploading(true);
+    const failures = [];
     try {
       for (const file of files) {
-        const fd = new FormData();
-        fd.append('file', file);
-        if (subToken) fd.append('token', subToken);
-        const res = await fetch(`/api/quotes/${quoteId}/timeline-photo`, { method: 'POST', headers: authHeaders, body: fd });
-        const data = await res.json();
-        if (res.ok) setPendingPhotos(p => [...p, data.url]);
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          if (subToken) fd.append('token', subToken);
+          const res = await fetch(`/api/quotes/${quoteId}/timeline-photo`, { method: 'POST', headers: authHeaders, body: fd });
+          const data = await res.json();
+          if (res.ok) setPendingPhotos(p => [...p, data.url]);
+          else failures.push(data.error || `Upload failed (${res.status})`);
+        } catch (err) {
+          failures.push(err.message || 'Upload failed');
+        }
       }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
+      if (failures.length) alert(`Couldn't attach ${failures.length > 1 ? 'some photos' : 'that photo'}: ${failures[0]}`);
     }
   };
 
@@ -147,7 +154,7 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
             rows={1}
             style={{ flex: 1, resize: 'none', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, fontFamily: "'DM Sans', sans-serif", outline: 'none', maxHeight: 80 }}
           />
-          <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" onChange={handleFiles} style={{ display: 'none' }} />
+          <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleFiles} style={{ display: 'none' }} />
           <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ background: '#f1f5f9', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
             {uploading ? <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} color="#64748b" /> : <Camera size={16} color="#64748b" />}
           </button>

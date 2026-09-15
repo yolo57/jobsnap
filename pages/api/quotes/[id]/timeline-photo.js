@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   if (quoteError || !quote) return res.status(404).json({ error: 'Not found' });
 
   try {
-    const form = formidable({ maxFileSize: 8 * 1024 * 1024 });
+    const form = formidable({ maxFileSize: 15 * 1024 * 1024 });
     const [fields, files] = await form.parse(req);
 
     // Same access model as the timeline endpoint: contractor token, sub link token, or public customer link.
