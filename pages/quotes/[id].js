@@ -40,7 +40,7 @@ export default function QuoteDetail() {
     }
   }, [id, quotes, user]);
 
-  useEffect(() => { getToken().then(setAuthToken); }, [getToken]);
+  useEffect(() => { setAuthToken(getToken()); }, [getToken]);
 
   if (!user || !quote) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner size={32} /></div>;
 
