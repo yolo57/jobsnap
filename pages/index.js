@@ -1,12 +1,41 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 import { Mic, Sparkles, FileText, Link2, Mail } from 'lucide-react';
 import { JobSnapLogo, Btn } from '../components/ui';
 
+
+// Small rotating typewriter effect for the hero headline: types a phrase,
+// pauses, deletes it, then moves to the next one -- purely visual, no deps.
+const HERO_PHRASES = ['under 2 minutes', 'one voice memo', 'zero paperwork'];
+function useTypewriter(phrases, { typeSpeed = 55, deleteSpeed = 28, pause = 1300 } = {}) {
+  const [text, setText] = useState('');
+  const [idx, setIdx] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = phrases[idx % phrases.length];
+    let t;
+    if (!deleting && text.length < current.length) {
+      t = setTimeout(() => setText(current.slice(0, text.length + 1)), typeSpeed);
+    } else if (!deleting && text.length === current.length) {
+      t = setTimeout(() => setDeleting(true), pause);
+    } else if (deleting && text.length > 0) {
+      t = setTimeout(() => setText(current.slice(0, text.length - 1)), deleteSpeed);
+    } else {
+      setDeleting(false);
+      setIdx(i => (i + 1) % phrases.length);
+    }
+    return () => clearTimeout(t);
+  }, [text, deleting, idx, phrases]);
+
+  return text;
+}
+
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const typedPhrase = useTypewriter(HERO_PHRASES);
 
   useEffect(() => {
     if (!loading && user) router.replace('/dashboard');
@@ -28,9 +57,19 @@ export default function Home() {
           <JobSnapLogo size={48} />
         </div>
 
-        <h1 style={{ fontSize: 36, fontWeight: 900, color: '#0f172a', margin: '0 0 16px', letterSpacing: '-1px', lineHeight: 1.15, fontFamily: "'Sora', sans-serif" }}>
-          AI quotes in<br /><span style={{ color: '#2563eb' }}>under 2 minutes</span>
+        <h1 style={{ fontSize: 36, fontWeight: 900, color: '#0f172a', margin: '0 0 16px', letterSpacing: '-1px', lineHeight: 1.15, fontFamily: "'Sora', sans-serif", minHeight: 92 }}>
+          AI quotes in<br />
+          <span style={{ color: '#2563eb' }}>
+            {typedPhrase}
+            <span style={{ display: 'inline-block', width: 3, height: 30, background: '#2563eb', marginLeft: 3, verticalAlign: '-4px', animation: 'jsnapBlink 0.9s step-end infinite' }} />
+          </span>
         </h1>
+        <style jsx>{`
+          @keyframes jsnapBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+          }
+        `}</style>
         <p style={{ color: '#64748b', fontSize: 17, margin: '0 0 40px', lineHeight: 1.6, maxWidth: 320 }}>
           Record a job site walk-through. Our AI generates a professional estimate instantly.
         </p>
