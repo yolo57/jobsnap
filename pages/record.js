@@ -85,7 +85,7 @@ useEffect(() => {
       timerRef.current = setInterval(() => {
         elapsed += 1;
         setElapsed(elapsed);
-        if (elapsed >= 600) stopAndProcess();
+        if (elapsed >= 180) stopAndProcess(); // 3 min cap -- keeps Whisper transcription cost per recording bounded
       }, 1000);
     } catch (e) {
       setError(e.name === 'NotAllowedError' ? 'Camera/mic access denied. Please allow in browser settings.' : `Camera error: ${e.message}`);
