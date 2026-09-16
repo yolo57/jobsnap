@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
+import { getT } from '../../lib/i18n';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
 import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar, Flag } from 'lucide-react';
@@ -8,10 +9,42 @@ import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet, Input } from '../..
 import Timeline from '../../components/Timeline';
 import { HardHat } from 'lucide-react';
 
+// navigator.clipboard.writeText() can silently reject inside the app's
+// Capacitor WebView (blocked Clipboard permission, non-secure context,
+// etc.) -- when that happened, the UI still said "Copied!" while nothing
+// was actually on the clipboard, so whatever the user pasted afterward was
+// stale/unrelated text instead of the link. Await it, and fall back to a
+// classic textarea+execCommand copy, and finally to a manual prompt so the
+// user can select-and-copy by hand rather than getting a false success.
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    throw new Error('Clipboard API unavailable');
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) return true;
+    } catch (e2) {}
+    return false;
+  }
+}
+
 export default function QuoteDetail() {
   const router = useRouter();
   const { id } = router.query;
-  const { user, profile, getToken } = useAuth();
+  const { user, profile, getToken, language } = useAuth();
+  const t = getT(language);
   const { quotes, updateQuote, deleteQuote } = useQuotes();
   const [quote, setQuote] = useState(null);
   const [updating, setUpdating] = useState(false);
@@ -89,10 +122,14 @@ export default function QuoteDetail() {
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(quoteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyLink = async () => {
+    const ok = await copyToClipboard(quoteUrl);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      prompt('Copy this link:', quoteUrl);
+    }
   };
 
   const handleCopySubLink = async () => {
@@ -102,14 +139,18 @@ export default function QuoteDetail() {
       const res = await fetch(`/api/quotes/${quote.id}/sub-link`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) {
-        navigator.clipboard.writeText(data.url);
-        setCopiedSub(true);
-        setTimeout(() => setCopiedSub(false), 2500);
+        const ok = await copyToClipboard(data.url);
+        if (ok) {
+          setCopiedSub(true);
+          setTimeout(() => setCopiedSub(false), 2500);
+        } else {
+          prompt(t('copy_crew_link') + ':', data.url);
+        }
       } else {
-        alert('Could not get crew link: ' + (data.error || 'Unknown error'));
+        alert(t('could_not_get_crew_link') + ': ' + (data.error || 'Unknown error'));
       }
     } catch (e) {
-      alert('Could not get crew link: ' + e.message);
+      alert(t('could_not_get_crew_link') + ': ' + e.message);
     } finally {
       setGettingSubLink(false);
     }
@@ -128,7 +169,7 @@ export default function QuoteDetail() {
       setQuote(updated);
       setShowSchedule(false);
     } catch (e) {
-      alert('Could not save schedule: ' + (e.error || e.message || 'Unknown error'));
+      alert(t('could_not_save_schedule') + ': ' + (e.error || e.message || 'Unknown error'));
     } finally {
       setScheduling(false);
     }
@@ -154,14 +195,14 @@ export default function QuoteDetail() {
   };
 
   const handleMarkComplete = async () => {
-    if (profile?.review_link && !confirm('Mark this job complete? A review request will be emailed to the customer automatically.')) return;
+    if (profile?.review_link && !confirm(t('confirm_mark_complete'))) return;
     await handleStatus('Completed');
   };
 
   const STATUS_ACTIONS = {
     Draft: [{ label: 'Send Quote', Icon: Send, action: handleSend, variant: 'primary' }, { label: 'Edit', Icon: Pencil, action: () => router.push(`/quotes/${quote.id}/edit`), variant: 'secondary' }],
     Sent: [{ label: 'Mark Approved', Icon: CheckCircle2, action: () => handleStatus('Approved'), variant: 'success' }, { label: 'Mark Rejected', Icon: XCircle, action: () => handleStatus('Rejected'), variant: 'danger' }],
-    Approved: [{ label: 'Mark Job Complete', Icon: Flag, action: handleMarkComplete, variant: 'success' }, { label: quote.scheduled_date ? 'Reschedule' : 'Schedule Job', Icon: Calendar, action: () => setShowSchedule(true), variant: 'secondary' }, { label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'secondary' }],
+    Approved: [{ label: t('mark_job_complete'), Icon: Flag, action: handleMarkComplete, variant: 'success' }, { label: quote.scheduled_date ? t('reschedule') : t('schedule_job'), Icon: Calendar, action: () => setShowSchedule(true), variant: 'secondary' }, { label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'secondary' }],
     Completed: [{ label: 'Download PDF', Icon: FileText, action: handleDownloadPDF, variant: 'primary' }],
     Rejected: [{ label: 'Duplicate', Icon: CopyIcon, action: () => {}, variant: 'secondary' }],
   };
@@ -194,7 +235,7 @@ export default function QuoteDetail() {
             {quote.sent_at && <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Sent {new Date(quote.sent_at).toLocaleDateString()}</span>}
             {quote.scheduled_date && (
               <span style={{ color: '#bfdbfe', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Calendar size={12} /> Scheduled {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString()}{quote.scheduled_time ? ` · ${quote.scheduled_time}` : ''}
+                <Calendar size={12} /> {t('scheduled_label')} {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US')}{quote.scheduled_time ? ` · ${quote.scheduled_time}` : ''}
               </span>
             )}
             {quote.assigned_to && (
@@ -275,10 +316,10 @@ export default function QuoteDetail() {
         {/* Signature */}
         {quote.signature_data && (
           <Card style={{ marginBottom: 16 }}>
-            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Customer Signature</p>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>{t('customer_signature')}</p>
             <img src={quote.signature_data} alt="Customer signature" style={{ maxWidth: 220, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', padding: 8 }} />
             <p style={{ color: '#64748b', fontSize: 12, margin: '8px 0 0' }}>
-              Signed by {quote.signature_name || 'customer'}{quote.signed_at ? ` on ${new Date(quote.signed_at).toLocaleDateString()}` : ''}
+              {t('signed_by', quote.signature_name || 'customer', quote.signed_at ? new Date(quote.signed_at).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US') : null)}
             </p>
           </Card>
         )}
@@ -286,13 +327,13 @@ export default function QuoteDetail() {
         {/* Review request status */}
         {quote.status === 'Completed' && (
           <Card style={{ marginBottom: 16 }}>
-            <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: '0 0 3px' }}>Review Request</p>
+            <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: '0 0 3px' }}>{t('review_request_title')}</p>
             <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>
               {quote.review_requested_at
-                ? `Sent to customer on ${new Date(quote.review_requested_at).toLocaleDateString()}`
+                ? t('review_sent_on', new Date(quote.review_requested_at).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US'))
                 : profile?.review_link
-                  ? 'Not sent — check your review link in Settings.'
-                  : 'Add your review link in Settings to auto-send these.'}
+                  ? t('review_not_sent_has_link')
+                  : t('review_not_sent_no_link')}
             </p>
           </Card>
         )}
@@ -300,13 +341,13 @@ export default function QuoteDetail() {
         {/* Job Timeline */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Job Timeline</p>
+            <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{t('job_timeline')}</p>
             <button onClick={handleCopySubLink} disabled={gettingSubLink} style={{ background: copiedSub ? '#f0fdf4' : '#eff6ff', border: `1px solid ${copiedSub ? '#bbf7d0' : '#bfdbfe'}`, borderRadius: 8, padding: '5px 10px', color: copiedSub ? '#16a34a' : '#2563eb', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <HardHat size={13} /> {copiedSub ? 'Link Copied!' : 'Copy Crew Link'}
+              <HardHat size={13} /> {copiedSub ? t('link_copied') : t('copy_crew_link')}
             </button>
           </div>
           {authToken && (
-            <Timeline quoteId={quote.id} role="contractor" authToken={authToken} authorName={profile?.owner_name || profile?.company_name} canLogUpdates />
+            <Timeline quoteId={quote.id} role="contractor" authToken={authToken} authorName={profile?.owner_name || profile?.company_name} canLogUpdates lang={language} />
           )}
         </div>
 
@@ -337,13 +378,13 @@ export default function QuoteDetail() {
       </div>
 
       {/* Schedule sheet */}
-      <BottomSheet open={showSchedule} onClose={() => setShowSchedule(false)} title="Schedule Job">
+      <BottomSheet open={showSchedule} onClose={() => setShowSchedule(false)} title={t('schedule_job')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0, maxWidth: '100%' }}>
-          <Input label="Date" type="date" value={schedDate} onChange={setSchedDate} required />
-          <Input label="Time (optional)" type="time" value={schedTime} onChange={setSchedTime} />
-          <Input label="Assigned to (optional)" placeholder="e.g. your name or crew" value={assignedTo} onChange={setAssignedTo} />
-          <Btn onClick={handleSaveSchedule} variant="primary" fullWidth loading={scheduling} disabled={!schedDate}>Save Schedule</Btn>
-          {quote.customer_email && <p style={{ color: '#94a3b8', fontSize: 12, margin: 0, textAlign: 'center' }}>The customer will get an email with the date{schedTime ? ' and time' : ''}.</p>}
+          <Input label={t('date_label')} type="date" value={schedDate} onChange={setSchedDate} required />
+          <Input label={t('time_optional')} type="time" value={schedTime} onChange={setSchedTime} />
+          <Input label={t('assigned_to_optional')} placeholder={t('assigned_to_placeholder')} value={assignedTo} onChange={setAssignedTo} />
+          <Btn onClick={handleSaveSchedule} variant="primary" fullWidth loading={scheduling} disabled={!schedDate}>{t('save_schedule')}</Btn>
+          {quote.customer_email && <p style={{ color: '#94a3b8', fontSize: 12, margin: 0, textAlign: 'center' }}>{t('customer_gets_email', !!schedTime)}</p>}
         </div>
       </BottomSheet>
 

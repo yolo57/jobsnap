@@ -109,7 +109,7 @@ export default function Dashboard() {
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 style={{ color: '#0f172a', fontSize: 16, fontWeight: 800, margin: 0, fontFamily: "'Sora', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={16} color="#2563eb" /> Today's Jobs
+                  <Calendar size={16} color="#2563eb" /> {t('todays_jobs')}
                 </h2>
                 <button onClick={() => router.push('/schedule')} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{t('view_all')}</button>
               </div>

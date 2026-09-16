@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   const { data: quote, error } = await supabase
     .from('quotes')
-    .select('id, customer_name, address, sub_token, status, profiles(company_name, owner_name, phone)')
+    .select('id, customer_name, address, sub_token, status, language, profiles(company_name, owner_name, phone)')
     .eq('id', id)
     .single();
   if (error || !quote) return res.status(404).json({ error: 'Not found' });
@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     customerName: quote.customer_name,
     address: quote.address,
     status: quote.status,
+    language: quote.language || 'en',
     companyName: quote.profiles?.company_name,
     ownerName: quote.profiles?.owner_name,
     phone: quote.profiles?.phone,

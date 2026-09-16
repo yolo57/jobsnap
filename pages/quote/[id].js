@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 import { Phone, Mail, CheckCircle2, Check, Eraser, PenLine, Calendar } from 'lucide-react';
 import Timeline from '../../components/Timeline';
+import { getT } from '../../lib/i18n';
 
-function SignaturePad({ onChange }) {
+function SignaturePad({ onChange, t }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
   const hasDrawn = useRef(false);
@@ -76,12 +77,12 @@ function SignaturePad({ onChange }) {
         />
         {!hasDrawn.current && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', color: '#cbd5e1', fontSize: 13, gap: 6 }}>
-            <PenLine size={14} /> Sign here
+            <PenLine size={14} /> {t('sign_here')}
           </div>
         )}
       </div>
       <button onClick={clear} style={{ marginTop: 8, background: 'none', border: 'none', color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: 0 }}>
-        <Eraser size={12} /> Clear
+        <Eraser size={12} /> {t('clear_signature')}
       </button>
     </div>
   );
@@ -100,6 +101,8 @@ export async function getServerSideProps({ params }) {
 }
 
 export default function PublicQuotePage({ quote }) {
+  const lang = quote.language === 'es' ? 'es' : 'en';
+  const t = getT(lang);
   const [approving, setApproving] = useState(false);
   const [approved, setApproved] = useState(quote.status === 'Approved' || quote.status === 'Completed');
   const [showSignStep, setShowSignStep] = useState(false);
@@ -122,10 +125,10 @@ export default function PublicQuotePage({ quote }) {
         if (signatureData) setSignedInfo({ name: signerName, at: new Date().toISOString() });
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(`Couldn't approve this estimate: ${data.error || 'Please try again, or call to let them know.'}`);
+        alert(`${t('could_not_approve')}: ${data.error || t('could_not_approve_generic')}`);
       }
     } catch (e) {
-      alert("Couldn't approve this estimate — check your connection and try again.");
+      alert(t('could_not_approve_offline'));
     } finally {
       setApproving(false);
     }
@@ -176,12 +179,12 @@ export default function PublicQuotePage({ quote }) {
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
                   <p style={{ color: '#16a34a', fontSize: 14, fontWeight: 700, margin: 0 }}>
-                    {quote.status === 'Completed' ? 'Job Completed — thank you!' : "Quote Approved — we'll be in touch soon!"}
+                    {quote.status === 'Completed' ? t('job_completed_msg') : t('quote_approved_msg')}
                   </p>
                 </div>
                 {signedInfo?.name && (
                   <p style={{ color: '#15803d', fontSize: 12, margin: '6px 0 0 30px' }}>
-                    Signed by {signedInfo.name}{signedInfo.at ? ` on ${new Date(signedInfo.at).toLocaleDateString()}` : ''}
+                    {t('signed_by', signedInfo.name, signedInfo.at ? new Date(signedInfo.at).toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US') : null)}
                   </p>
                 )}
               </div>
@@ -234,8 +237,8 @@ export default function PublicQuotePage({ quote }) {
                 <Calendar size={20} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
                 <div>
                   <p style={{ color: '#1e3a5f', fontSize: 15, fontWeight: 800, margin: '0 0 2px', fontFamily: "'Sora', sans-serif" }}>
-                    Job scheduled for {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-                    {quote.scheduled_time ? ` at ${quote.scheduled_time}` : ''}
+                    {t('job_scheduled_for')} {new Date(quote.scheduled_date + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    {quote.scheduled_time ? ` ${t('at_time')} ${quote.scheduled_time}` : ''}
                   </p>
                   {quote.address && <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{quote.address}</p>}
                 </div>
@@ -273,36 +276,36 @@ export default function PublicQuotePage({ quote }) {
               onClick={() => setShowSignStep(true)}
               style={{ width: '100%', background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none', borderRadius: 16, padding: '18px', cursor: 'pointer', color: '#fff', fontSize: 17, fontWeight: 800, fontFamily: "'Sora', sans-serif", boxShadow: '0 4px 16px rgba(22,163,74,0.3)', marginBottom: 12 }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Check size={18} strokeWidth={3} /> Approve This Estimate</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Check size={18} strokeWidth={3} /> {t('approve_estimate')}</span>
             </button>
           )}
 
           {!approved && quote.status === 'Sent' && showSignStep && (
             <div style={{ background: '#fff', borderRadius: 16, padding: '18px 20px', border: '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-              <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 800, margin: '0 0 12px', fontFamily: "'Sora', sans-serif" }}>Sign to approve</p>
-              <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Your full name</label>
+              <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 800, margin: '0 0 12px', fontFamily: "'Sora', sans-serif" }}>{t('sign_to_approve')}</p>
+              <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{t('your_full_name')}</label>
               <input
                 value={signerName}
                 onChange={e => setSignerName(e.target.value)}
                 placeholder="Jane Doe"
                 style={{ width: '100%', boxSizing: 'border-box', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 14px', fontSize: 14, marginBottom: 14, fontFamily: "'DM Sans', sans-serif" }}
               />
-              <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>Signature</label>
-              <SignaturePad onChange={setSignatureData} />
+              <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{t('signature_label')}</label>
+              <SignaturePad onChange={setSignatureData} t={t} />
               <button
                 onClick={handleApprove}
                 disabled={approving || !signatureData || !signerName.trim()}
                 style={{ width: '100%', marginTop: 16, background: (!signatureData || !signerName.trim()) ? '#cbd5e1' : 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none', borderRadius: 14, padding: '16px', cursor: (!signatureData || !signerName.trim()) ? 'default' : 'pointer', color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: "'Sora', sans-serif" }}
               >
-                {approving ? 'Approving...' : 'Confirm & Approve'}
+                {approving ? t('approving') : t('confirm_approve')}
               </button>
             </div>
           )}
 
           {['Sent', 'Approved', 'Completed'].includes(quote.status) && (
             <div style={{ marginBottom: 16 }}>
-              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>Job Updates</p>
-              <Timeline quoteId={quote.id} role="customer" authorName={quote.customer_name || 'Customer'} />
+              <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>{t('job_updates')}</p>
+              <Timeline quoteId={quote.id} role="customer" authorName={quote.customer_name || 'Customer'} lang={lang} />
             </div>
           )}
 
@@ -314,7 +317,7 @@ export default function PublicQuotePage({ quote }) {
             </div>
           )}
 
-          <p style={{ textAlign: 'center', color: '#cbd5e1', fontSize: 11, marginTop: 32 }}>Powered by JobSnap</p>
+          <p style={{ textAlign: 'center', color: '#cbd5e1', fontSize: 11, marginTop: 32 }}>{t('powered_by')}</p>
         </div>
       </div>
     </>

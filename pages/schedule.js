@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { getT } from '../lib/i18n';
 import { useQuotes } from '../hooks/useQuotes';
 import AppShell from '../components/layout/AppShell';
 import { Card, PageHeader, EmptyState, Spinner } from '../components/ui';
@@ -8,7 +9,8 @@ import { Calendar, MapPin, ChevronRight, HardHat } from 'lucide-react';
 
 export default function SchedulePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, language } = useAuth();
+  const t = getT(language);
   const { quotes, loading } = useQuotes();
 
   useEffect(() => {
@@ -34,14 +36,14 @@ export default function SchedulePage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffDays = Math.round((d - today) / 86400000);
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Tomorrow';
-    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    if (diffDays === 0) return t('today_label');
+    if (diffDays === 1) return t('tomorrow_label');
+    return d.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
   return (
     <AppShell>
-      <PageHeader title="Schedule" subtitle={`${scheduled.length} upcoming job${scheduled.length === 1 ? '' : 's'}`} />
+      <PageHeader title={t('schedule_page_title')} subtitle={t('upcoming_jobs', scheduled.length)} />
 
       <div style={{ padding: '16px', overflowY: 'auto' }}>
         {loading ? (
@@ -49,8 +51,8 @@ export default function SchedulePage() {
         ) : groups.length === 0 ? (
           <EmptyState
             icon={<Calendar size={32} />}
-            title="No jobs scheduled"
-            sub="Schedule a job from an approved quote and it will show up here."
+            title={t('no_jobs_scheduled')}
+            sub={t('no_jobs_scheduled_sub')}
           />
         ) : (
           groups.map(group => (

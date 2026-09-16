@@ -1,7 +1,47 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, Send, Loader2, X } from 'lucide-react';
+import { getT } from '../lib/i18n';
 
-const ROLE_LABEL = { contractor: 'Contractor', sub: 'Crew', customer: 'Customer' };
+// Phone camera photos are commonly 3-15MB, well over Vercel's hard 4.5MB
+// serverless request-body limit -- uploads of full-resolution photos were
+// silently failing (rejected before our code even runs). Downscale +
+// re-encode as JPEG client-side first, same approach as pages/record.js.
+async function compressPhoto(file, maxDim = 1600, quality = 0.75) {
+  if (!file.type || !file.type.startsWith('image/')) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+    if (width > maxDim || height > maxDim) {
+      const scale = maxDim / Math.max(width, height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    let blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (blob && blob.size > 4 * 1024 * 1024) {
+      // Still too big (rare) -- one more, more aggressive pass.
+      const scale2 = 900 / Math.max(width, height);
+      if (scale2 < 1) {
+        canvas.width = Math.round(width * scale2);
+        canvas.height = Math.round(height * scale2);
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      }
+      blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.6));
+    }
+    if (!blob) return file;
+    const newName = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([blob], newName, { type: 'image/jpeg' });
+  } catch (e) {
+    // Decode failed (unsupported format, etc.) -- fall back to the original file.
+    return file;
+  }
+}
+
+const ROLE_KEY = { contractor: 'role_contractor', sub: 'role_crew', customer: 'role_customer' };
 const ROLE_COLOR = {
   contractor: { bg: '#eff6ff', border: '#bfdbfe', text: '#1e3a5f' },
   sub: { bg: '#f8fafc', border: '#e2e8f0', text: '#334155' },
@@ -11,7 +51,8 @@ const ROLE_COLOR = {
 // Drop-in job timeline: progress updates (with photos) + two-way chat.
 // Works for the contractor (auth token), a subcontractor (link token, no login),
 // or the customer (public quote link, no auth) — pass the right props for each.
-export default function Timeline({ quoteId, role, authToken, subToken, authorName, canLogUpdates }) {
+export default function Timeline({ quoteId, role, authToken, subToken, authorName, canLogUpdates, lang }) {
+  const t = getT(lang || 'en');
   const [entries, setEntries] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [text, setText] = useState('');
@@ -50,8 +91,9 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
     try {
       for (const file of files) {
         try {
+          const compressed = await compressPhoto(file);
           const fd = new FormData();
-          fd.append('file', file);
+          fd.append('file', compressed);
           if (subToken) fd.append('token', subToken);
           const res = await fetch(`/api/quotes/${quoteId}/timeline-photo`, { method: 'POST', headers: authHeaders, body: fd });
           const data = await res.json();
@@ -64,7 +106,7 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
-      if (failures.length) alert(`Couldn't attach ${failures.length > 1 ? 'some photos' : 'that photo'}: ${failures[0]}`);
+      if (failures.length) alert(t('could_not_attach', failures.length, failures[0]));
     }
   };
 
@@ -85,10 +127,10 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
         setPendingPhotos([]);
       } else {
         const data = await res.json().catch(() => ({}));
-        alert(`Couldn't send that: ${data.error || 'Please try again.'}`);
+        alert(t('could_not_send', data.error || 'Please try again.'));
       }
     } catch (e) {
-      alert("Couldn't send that — check your connection and try again.");
+      alert(t('could_not_send_offline'));
     } finally {
       setSending(false);
     }
@@ -97,12 +139,12 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
   return (
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
       <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', background: '#fafbfc' }}>
-        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#0f172a' }}>Job Timeline</p>
+        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#0f172a' }}>{t('job_timeline')}</p>
       </div>
 
       <div style={{ maxHeight: 360, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loaded && entries.length === 0 && (
-          <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', margin: '20px 0' }}>No updates yet.</p>
+          <p style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', margin: '20px 0' }}>{t('no_updates_yet')}</p>
         )}
         {entries.map(entry => {
           const c = ROLE_COLOR[entry.role] || ROLE_COLOR.sub;
@@ -110,7 +152,7 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
             <div key={entry.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: '10px 14px', maxWidth: '88%', alignSelf: entry.role === 'customer' ? 'flex-end' : 'flex-start' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 800, color: c.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {entry.author_name || ROLE_LABEL[entry.role]}{entry.entry_type === 'update' ? ' · update' : ''}
+                  {entry.author_name || t(ROLE_KEY[entry.role] || 'role_crew')}{entry.entry_type === 'update' ? ` · ${t('progress_update').toLowerCase()}` : ''}
                 </span>
                 <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>{new Date(entry.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
               </div>
@@ -133,8 +175,8 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
       <div style={{ padding: '12px 14px', borderTop: '1px solid #f1f5f9', background: '#fafbfc' }}>
         {canLogUpdates && (
           <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-            <button onClick={() => setPostAsUpdate(true)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: postAsUpdate ? '#2563eb' : '#e2e8f0', color: postAsUpdate ? '#fff' : '#64748b' }}>Progress update</button>
-            <button onClick={() => setPostAsUpdate(false)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: !postAsUpdate ? '#2563eb' : '#e2e8f0', color: !postAsUpdate ? '#fff' : '#64748b' }}>Message customer</button>
+            <button onClick={() => setPostAsUpdate(true)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: postAsUpdate ? '#2563eb' : '#e2e8f0', color: postAsUpdate ? '#fff' : '#64748b' }}>{t('progress_update')}</button>
+            <button onClick={() => setPostAsUpdate(false)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: !postAsUpdate ? '#2563eb' : '#e2e8f0', color: !postAsUpdate ? '#fff' : '#64748b' }}>{t('message_customer')}</button>
           </div>
         )}
 
@@ -155,7 +197,7 @@ export default function Timeline({ quoteId, role, authToken, subToken, authorNam
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder={role === 'customer' ? 'Send a message...' : postAsUpdate ? "What'd you get done today?" : 'Message the customer...'}
+            placeholder={role === 'customer' ? t('placeholder_customer_message') : postAsUpdate ? t('placeholder_progress') : t('placeholder_message_contractor')}
             rows={1}
             style={{ flex: 1, resize: 'none', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, fontFamily: "'DM Sans', sans-serif", outline: 'none', maxHeight: 80 }}
           />
