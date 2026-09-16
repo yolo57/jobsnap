@@ -3,16 +3,20 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
+import ItemPicker from '../../components/ItemPicker';
 import { Sparkles, Camera, X, Plus } from 'lucide-react';
 import { Card, Input, Btn, PageHeader, Spinner, UpgradeWall } from '../../components/ui';
 import { quotesRemaining } from '../../lib/stripe';
 import { openExternal } from '../../lib/openExternal';
+import { getT } from '../../lib/i18n';
 
 export default function NewQuote() {
   const router = useRouter();
-  const { user, profile, getToken } = useAuth();
+  const { user, profile, getToken, language } = useAuth();
+  const t = getT(language);
   const { createQuote, updateQuote } = useQuotes();
   const [lineItems, setLineItems] = useState([]);
+  const [showPicker, setShowPicker] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [scope, setScope] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -57,6 +61,18 @@ export default function NewQuote() {
   const updateItem = (id, field, val) => setLineItems(items => items.map(i => i.id === id ? { ...i, [field]: val } : i));
   const addItem = () => setLineItems(items => [...items, { id: 'li_' + Date.now(), task: '', desc: '', qty: 1, unit: 'ea', price: 0, taxable: false }]);
   const removeItem = (id) => setLineItems(items => items.filter(i => i.id !== id));
+  const handlePickItem = (savedItem) => {
+    setLineItems(items => [...items, {
+      id: 'li_' + Date.now(),
+      task: savedItem.task,
+      desc: savedItem.description || '',
+      qty: 1,
+      unit: savedItem.unit || 'ea',
+      price: Number(savedItem.price) || 0,
+      taxable: false,
+    }]);
+    setShowPicker(false);
+  };
 
   const dataUrlToBlob = (dataUrl) => {
     const [meta, b64] = dataUrl.split(',');
@@ -189,7 +205,10 @@ export default function NewQuote() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Line Items</p>
-              <button onClick={addItem} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '5px 12px', color: '#2563eb', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>+ Add</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowPicker(true)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 12px', color: '#475569', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{t('from_my_items')}</button>
+                <button onClick={addItem} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '5px 12px', color: '#2563eb', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>+ Add</button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -300,6 +319,8 @@ export default function NewQuote() {
           <Btn onClick={handleSave} fullWidth size="lg" loading={saving}>Save Estimate</Btn>
         </div>
       </div>
+
+      <ItemPicker open={showPicker} onClose={() => setShowPicker(false)} userId={user?.id} onSelect={handlePickItem} t={t} />
     </AppShell>
   );
 }

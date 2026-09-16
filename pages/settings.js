@@ -239,6 +239,12 @@ export default function SettingsPage() {
           <Input label={t('quote_notes')} value={form.quote_notes || ''} onChange={v => set('quote_notes', v)} placeholder="Thank you for your business!" multiline style={{ marginBottom: 0 }} />
         </Card>
 
+        {/* Item library */}
+        <SectionHeader title={t('item_library')} sub={t('manage_saved_items_desc')} />
+        <Card style={{ marginBottom: 20 }}>
+          <Btn onClick={() => router.push('/items')} fullWidth variant="secondary">{t('manage_saved_items')}</Btn>
+        </Card>
+
         {/* Review requests */}
         <SectionHeader title="Review Requests" sub="Sent when you mark a job complete" />
         <Card style={{ marginBottom: 20 }}>
