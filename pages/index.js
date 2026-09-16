@@ -7,7 +7,7 @@ import { JobSnapLogo, Btn } from '../components/ui';
 
 // Small rotating typewriter effect for the hero headline: types a phrase,
 // pauses, deletes it, then moves to the next one -- purely visual, no deps.
-const HERO_PHRASES = ['under 2 minutes', 'one voice memo', 'zero paperwork'];
+const HERO_PHRASES = ['seconds', 'one voice memo', 'zero paperwork'];
 function useTypewriter(phrases, { typeSpeed = 55, deleteSpeed = 28, pause = 1300 } = {}) {
   const [text, setText] = useState('');
   const [idx, setIdx] = useState(0);
