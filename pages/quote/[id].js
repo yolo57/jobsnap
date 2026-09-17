@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { Phone, Mail, CheckCircle2, Check, Eraser, PenLine, Calendar } from 'lucide-react';
+import { Phone, Mail, CheckCircle2, Check, Eraser, PenLine, Calendar, CreditCard, Loader2 } from 'lucide-react';
 import Timeline from '../../components/Timeline';
 import { getT } from '../../lib/i18n';
 
@@ -110,6 +111,28 @@ export default function PublicQuotePage({ quote }) {
   const [signatureData, setSignatureData] = useState(null);
   const [signedInfo, setSignedInfo] = useState(quote.signature_name ? { name: quote.signature_name, at: quote.signed_at } : null);
   const profile = quote.profiles || {};
+  const router = useRouter();
+  const [paying, setPaying] = useState(false);
+  const justPaid = router.query.paid === '1';
+  const canPayOnline = !!profile.stripe_account_id && !!profile.stripe_charges_enabled;
+  const isPaid = !!quote.paid_at || justPaid;
+
+  const handlePay = async () => {
+    setPaying(true);
+    try {
+      const res = await fetch(`/api/quotes/${quote.id}/pay`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || t('could_not_start_payment'));
+        setPaying(false);
+      }
+    } catch (e) {
+      alert(t('could_not_start_payment'));
+      setPaying(false);
+    }
+  };
 
   const handleApprove = async () => {
     setApproving(true);
@@ -243,6 +266,33 @@ export default function PublicQuotePage({ quote }) {
                   {quote.address && <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{quote.address}</p>}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Pay Now */}
+          {['Approved', 'Completed'].includes(quote.status) && canPayOnline && (
+            <div style={{ background: isPaid ? '#f0fdf4' : '#fff', borderRadius: 16, padding: '18px 20px', border: isPaid ? '1px solid #bbf7d0' : '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              {isPaid ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
+                  <p style={{ color: '#16a34a', fontSize: 14, fontWeight: 700, margin: 0 }}>{t('payment_received')}</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ color: '#64748b', fontSize: 13, fontWeight: 600 }}>{t('amount_due')}</span>
+                    <span style={{ color: '#0f172a', fontSize: 20, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>${(quote.total || 0).toLocaleString()}</span>
+                  </div>
+                  <button
+                    onClick={handlePay}
+                    disabled={paying}
+                    style={{ width: '100%', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: 'none', borderRadius: 14, padding: '16px', cursor: paying ? 'default' : 'pointer', color: '#fff', fontSize: 15, fontWeight: 800, fontFamily: "'Sora', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  >
+                    {paying ? <Loader2 size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> : <CreditCard size={16} />}
+                    {paying ? t('starting_payment') : t('pay_now')}
+                  </button>
+                </>
+              )}
             </div>
           )}
 

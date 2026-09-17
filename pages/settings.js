@@ -2,12 +2,34 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, CreditCard, Users, Copy } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import { Card, Input, Btn, PageHeader, Badge, Spinner } from '../components/ui';
 import { PLANS } from '../lib/stripe';
 import { getT } from '../lib/i18n';
 import { openExternal } from '../lib/openExternal';
+
+// Same Clipboard-API-can-silently-fail fix used on the quote/crew links.
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) return true;
+    } catch (e2) { /* fall through */ }
+    return false;
+  }
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -17,6 +39,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [upgradingTo, setUpgradingTo] = useState(null);
+  const [connecting, setConnecting] = useState(false);
+  const [leadLinkCopied, setLeadLinkCopied] = useState(false);
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -25,7 +49,35 @@ export default function SettingsPage() {
       refreshProfile();
       router.replace('/settings');
     }
+    if (router.query.stripe_return) {
+      (async () => {
+        const token = await getToken();
+        await fetch('/api/stripe/connect-status', { headers: { Authorization: `Bearer ${token}` } });
+        await refreshProfile();
+        router.replace('/settings');
+      })();
+    }
   }, [user, profile]);
+
+  const handleConnectPayments = async () => {
+    setConnecting(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/stripe/connect-start', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.url) openExternal(data.url);
+      else alert(data.error || 'Could not start setup.');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const leadLink = typeof window !== 'undefined' && user ? `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/request/${user.id}` : '';
+  const handleCopyLeadLink = async () => {
+    const ok = await copyText(leadLink);
+    if (ok) { setLeadLinkCopied(true); setTimeout(() => setLeadLinkCopied(false), 2000); }
+    else window.prompt(t('copy_this_link') + ':', leadLink);
+  };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -237,6 +289,44 @@ export default function SettingsPage() {
           </div>
           <Input label={t('payment_terms')} value={form.payment_terms || ''} onChange={v => set('payment_terms', v)} placeholder="Due upon completion" />
           <Input label={t('quote_notes')} value={form.quote_notes || ''} onChange={v => set('quote_notes', v)} placeholder="Thank you for your business!" multiline style={{ marginBottom: 0 }} />
+        </Card>
+
+        {/* Get paid online */}
+        <SectionHeader title={t('get_paid_online')} sub={t('get_paid_online_desc')} />
+        <Card style={{ marginBottom: 20 }}>
+          {profile?.stripe_charges_enabled ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: '#16a34a', flexShrink: 0 }} />
+              <div>
+                <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: 0 }}>{t('payments_active')}</p>
+                <p style={{ color: '#94a3b8', fontSize: 12, margin: '2px 0 0' }}>{t('payments_active_desc')}</p>
+              </div>
+            </div>
+          ) : profile?.stripe_account_id ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 5, background: '#f59e0b', flexShrink: 0 }} />
+                <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: 0 }}>{t('setup_incomplete')}</p>
+              </div>
+              <Btn onClick={handleConnectPayments} fullWidth variant="secondary" loading={connecting}><CreditCard size={15} /> {t('finish_setup')}</Btn>
+            </>
+          ) : (
+            <>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 12px', lineHeight: 1.5 }}>{t('get_paid_online_explain')}</p>
+              <Btn onClick={handleConnectPayments} fullWidth loading={connecting}><CreditCard size={15} /> {t('connect_bank_account')}</Btn>
+            </>
+          )}
+        </Card>
+
+        {/* New leads / request-a-quote link */}
+        <SectionHeader title={t('new_leads')} sub={t('new_leads_desc')} />
+        <Card style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', marginBottom: 10 }}>
+            <Users size={14} color="#94a3b8" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 12.5, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{leadLink}</span>
+          </div>
+          <Btn onClick={handleCopyLeadLink} fullWidth variant="secondary"><Copy size={14} /> {leadLinkCopied ? t('link_copied') : t('copy_link')}</Btn>
+          <p style={{ color: '#94a3b8', fontSize: 11, margin: '10px 0 0', lineHeight: 1.5 }}>{t('new_leads_hint')}</p>
         </Card>
 
         {/* Item library */}

@@ -37,7 +37,14 @@ export default async function handler(req, res) {
     case 'checkout.session.completed': {
       const session = event.data.object;
       const userId = session.metadata?.user_id;
-      if (userId && session.subscription) {
+      if (session.metadata?.type === 'job_payment' && session.metadata?.quote_id) {
+        // A customer just paid an approved estimate -- money went straight
+        // to the contractor's connected Stripe account, this just records it.
+        await supabase.from('quotes').update({
+          paid_at: new Date().toISOString(),
+          payment_amount: (session.amount_total || 0) / 100,
+        }).eq('id', session.metadata.quote_id);
+      } else if (userId && session.subscription) {
         const sub = await stripe.subscriptions.retrieve(session.subscription);
         const plan = getPlan(sub.items.data[0]?.price?.id);
         await supabase.from('profiles').update({
@@ -47,6 +54,16 @@ export default async function handler(req, res) {
           quotes_used_this_month: 0,
         }).eq('id', userId);
       }
+      break;
+    }
+    case 'account.updated': {
+      // A contractor's Connect onboarding status changed (e.g. they
+      // finished adding their bank details).
+      const account = event.data.object;
+      await supabase.from('profiles').update({
+        stripe_charges_enabled: !!account.charges_enabled,
+        stripe_payouts_enabled: !!account.payouts_enabled,
+      }).eq('stripe_account_id', account.id);
       break;
     }
     case 'customer.subscription.updated': {

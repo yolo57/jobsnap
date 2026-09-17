@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
   // Public GET for shareable quote page
   if (req.method === 'GET' && !req.headers.authorization) {
-    const { data, error } = await supabase.from('quotes').select('*, profiles(company_name, phone, email, logo_url, owner_name, license_number, payment_terms, quote_notes)').eq('id', id).single();
+    const { data, error } = await supabase.from('quotes').select('*, profiles(company_name, phone, email, logo_url, owner_name, license_number, payment_terms, quote_notes, stripe_account_id, stripe_charges_enabled)').eq('id', id).single();
     if (error || !data) return res.status(404).json({ error: 'Quote not found' });
     if (!['Sent', 'Approved', 'Rejected', 'Completed'].includes(data.status)) return res.status(403).json({ error: 'Not available' });
     return res.status(200).json(data);
