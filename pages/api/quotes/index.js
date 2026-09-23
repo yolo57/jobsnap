@@ -69,6 +69,12 @@ export default async function handler(req, res) {
       discount_amount: discountAmt,
       total,
       notes,
+      // The customer-facing quote page renders in this language -- without
+      // it, quotes silently defaulted to English even when the contractor
+      // built the estimate in Spanish. Inherit the contractor's current
+      // app-language setting (what they were actually using to build it),
+      // unless the client explicitly says otherwise.
+      language: ['en', 'es'].includes(req.body.language) ? req.body.language : (profile?.language === 'es' ? 'es' : 'en'),
       status: 'Draft',
     }).select().single();
 

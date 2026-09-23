@@ -246,6 +246,38 @@ export default function QuoteDetail() {
           </div>
         </Card>
 
+        {/* Customer language -- explicit, always visible, never a silent default */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <Globe size={14} color="#64748b" />
+            <span style={{ color: '#475569', fontSize: 12.5, fontWeight: 600 }}>{t('customer_sees_in')}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 3, background: '#f1f5f9', borderRadius: 9, padding: 3 }}>
+            {['en', 'es'].map(code => {
+              const active = (quote.language || 'en') === code;
+              return (
+                <button
+                  key={code}
+                  onClick={() => !active && !translating && handleTranslate(code)}
+                  disabled={translating}
+                  style={{
+                    border: 'none',
+                    borderRadius: 7,
+                    padding: '6px 14px',
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    cursor: active || translating ? 'default' : 'pointer',
+                    background: active ? '#2563eb' : 'transparent',
+                    color: active ? '#fff' : '#64748b',
+                  }}
+                >
+                  {code === 'en' ? 'English' : 'Español'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           {(STATUS_ACTIONS[quote.status] || []).map(a => (
@@ -255,9 +287,6 @@ export default function QuoteDetail() {
           ))}
           <Btn onClick={async () => { if (quote.status === 'Draft') { const updated = await handleStatus('Sent'); if (!updated) return; } setShowShare(true); }} variant="secondary" size="sm"><Link2 size={15} /> Share</Btn>
           <Btn onClick={handleDownloadPDF} variant="secondary" size="sm"><FileText size={15} /> PDF</Btn>
-          <Btn onClick={() => handleTranslate(quote.language === 'es' ? 'en' : 'es')} variant="secondary" size="sm" loading={translating}>
-            <Globe size={15} /> {quote.language === 'es' ? 'Translate to English' : 'Translate to Español'}
-          </Btn>
         </div>
 
         {/* Line items */}
