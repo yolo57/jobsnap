@@ -20,6 +20,22 @@ async function supabaseAuth(endpoint, body) {
   return data;
 }
 
+// Supabase access tokens expire after ~1 hour. The app was never using the
+// refresh_token that comes back alongside them, so anyone who opened the
+// app again after that hour got silently logged out and had to type their
+// email/password in again -- this is what was happening during demos.
+// isExpired() checks with a buffer so we refresh a bit before it actually
+// lapses, and refreshSession() exchanges the refresh_token for a new pair,
+// same shape as a fresh sign-in.
+function isExpired(session, bufferSeconds = 90) {
+  if (!session?.expires_at) return true;
+  return new Date(session.expires_at * 1000).getTime() - bufferSeconds * 1000 < Date.now();
+}
+
+async function refreshSession(refreshToken) {
+  return supabaseAuth('token?grant_type=refresh_token', { refresh_token: refreshToken });
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -78,24 +94,52 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Load from localStorage
-    try {
-      const stored = localStorage.getItem('jobsnap_session');
-      if (stored) {
-        const session = JSON.parse(stored);
-        // Check if expired
-        if (session.expires_at && new Date(session.expires_at * 1000) > new Date()) {
-          setUser(session.user);
-          loadProfile(session.user.id, session.access_token).finally(() => setLoading(false));
-        } else {
-          localStorage.removeItem('jobsnap_session');
-          setLoading(false);
+    (async () => {
+      try {
+        const stored = localStorage.getItem('jobsnap_session');
+        if (!stored) { setLoading(false); return; }
+        let session = JSON.parse(stored);
+
+        if (isExpired(session)) {
+          if (!session.refresh_token) { localStorage.removeItem('jobsnap_session'); setLoading(false); return; }
+          try {
+            session = await refreshSession(session.refresh_token);
+            localStorage.setItem('jobsnap_session', JSON.stringify(session));
+          } catch (e) {
+            // Refresh token itself expired/revoked -- this is the one case
+            // that legitimately needs a fresh sign-in.
+            localStorage.removeItem('jobsnap_session');
+            setLoading(false);
+            return;
+          }
         }
-      } else {
+
+        setUser(session.user);
+        loadProfile(session.user.id, session.access_token).finally(() => setLoading(false));
+      } catch (e) {
         setLoading(false);
       }
-    } catch (e) {
-      setLoading(false);
-    }
+    })();
+  }, []);
+
+  // Keep the session alive in the background too -- without this, a demo
+  // that runs long, or the app just sitting open, would still hit the same
+  // expiry wall mid-use.
+  useEffect(() => {
+    const tick = async () => {
+      try {
+        const stored = localStorage.getItem('jobsnap_session');
+        if (!stored) return;
+        const session = JSON.parse(stored);
+        if (isExpired(session) && session.refresh_token) {
+          const fresh = await refreshSession(session.refresh_token);
+          localStorage.setItem('jobsnap_session', JSON.stringify(fresh));
+        }
+      } catch (e) { /* next tick or next app-open will retry */ }
+    };
+    const iv = setInterval(tick, 4 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick(); });
+    return () => clearInterval(iv);
   }, []);
 
   const signIn = async (email, password) => {
