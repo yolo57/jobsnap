@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       payment_method_types: ['card'],
       line_items: [{ price: planConfig.priceId, quantity: 1 }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings`,
       metadata: { user_id: user.id, plan },
     });
 
