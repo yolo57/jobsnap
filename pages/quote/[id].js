@@ -102,7 +102,11 @@ export async function getServerSideProps({ params }) {
 }
 
 export default function PublicQuotePage({ quote }) {
-  const lang = quote.language === 'es' ? 'es' : 'en';
+  // Buttons/labels on the customer's side always default to English,
+  // regardless of quote.language -- that field only controls whether the
+  // line-item content itself gets translated (via the contractor's EN/ES
+  // toggle), not the surrounding page chrome.
+  const lang = 'en';
   const t = getT(lang);
   const [approving, setApproving] = useState(false);
   const [approved, setApproved] = useState(quote.status === 'Approved' || quote.status === 'Completed');
