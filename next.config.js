@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs/config');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -11,4 +13,13 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Sentry source-map upload only runs when SENTRY_AUTH_TOKEN is set (e.g. in Vercel).
+// Without it, this just wraps the app for error reporting with no build-time side effects.
+module.exports = withSentryConfig(nextConfig, {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  dryRun: !process.env.SENTRY_AUTH_TOKEN,
+  disableLogger: true,
+});
