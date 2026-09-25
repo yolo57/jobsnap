@@ -23,6 +23,7 @@ alter table quotes add column if not exists followup_sent_3d boolean default fal
 alter table quotes add column if not exists followup_sent_7d boolean default false;
 alter table quotes add column if not exists sent_at timestamptz;
 alter table quotes add column if not exists approved_at timestamptz;
+alter table quotes add column if not exists rejected_at timestamptz;
 
 -- Make sure RLS update policy exists (safe to re-run)
 drop policy if exists "Users can update own profile" on profiles;

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../hooks/useAuth';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
-import { Search, FileText, Mic } from 'lucide-react';
+import { Search, FileText, Mic, Bell } from 'lucide-react';
 import { Card, Badge, Btn, PageHeader, EmptyState, Spinner } from '../../components/ui';
 
 export default function QuotesPage() {
@@ -28,7 +28,12 @@ export default function QuotesPage() {
     <AppShell>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <PageHeader title="Quotes" action={
-          <Btn onClick={() => router.push('/record')} size="sm">+ Record</Btn>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={() => router.push('/followups')} title="Follow Up" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#1e3a5f', cursor: 'pointer', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Bell size={16} />
+            </button>
+            <Btn onClick={() => router.push('/record')} size="sm">+ Record</Btn>
+          </div>
         } />
 
         <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #e2e8f0' }}>

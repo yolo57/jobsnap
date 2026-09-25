@@ -59,6 +59,7 @@ export default async function handler(req, res) {
     }
     if (updates.status === 'Sent' && !updates.sent_at) updates.sent_at = new Date().toISOString();
     if (updates.status === 'Approved') updates.approved_at = new Date().toISOString();
+    if (updates.status === 'Rejected') updates.rejected_at = new Date().toISOString();
     if (updates.status === 'Completed') updates.completed_at = new Date().toISOString();
 
     const { data, error } = await supabase.from('quotes').update(updates).eq('id', id).eq('user_id', user.id).select().single();
