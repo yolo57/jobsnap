@@ -16,7 +16,9 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.replace('/dashboard');
+      let seenOnboarding = true;
+      try { seenOnboarding = localStorage.getItem('jobsnap_onboarding_seen') === '1'; } catch (e2) {}
+      router.replace(seenOnboarding ? '/dashboard' : '/onboarding');
     } catch (e) {
       setError(e.message);
     } finally {

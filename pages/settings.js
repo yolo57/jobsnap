@@ -49,6 +49,13 @@ export default function SettingsPage() {
       refreshProfile();
       router.replace('/settings');
     }
+    // Landed here from the onboarding paywall screen with a plan already
+    // picked (?upgrade=pro|premium) -- go straight into checkout instead
+    // of making them find the plan card and tap it again.
+    if (router.query.upgrade === 'pro' || router.query.upgrade === 'premium') {
+      handleUpgrade(router.query.upgrade);
+      router.replace('/settings');
+    }
     if (router.query.stripe_return) {
       (async () => {
         const token = await getToken();
