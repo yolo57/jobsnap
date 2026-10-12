@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 import { Mic, Sparkles, FileText, Link2, Mail } from 'lucide-react';
 import { JobSnapLogo, Btn } from '../components/ui';
@@ -95,6 +96,14 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Footer */}
+      <div style={{ borderTop: '1px solid #f1f5f9', padding: '24px 28px', display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'center' }}>
+        <Link href="/pricing" style={{ color: '#64748b', fontSize: 13, textDecoration: 'none' }}>Pricing</Link>
+        <Link href="/terms" style={{ color: '#64748b', fontSize: 13, textDecoration: 'none' }}>Terms of Service</Link>
+        <Link href="/privacy" style={{ color: '#64748b', fontSize: 13, textDecoration: 'none' }}>Privacy Policy</Link>
+        <Link href="/refund-policy" style={{ color: '#64748b', fontSize: 13, textDecoration: 'none' }}>Refund Policy</Link>
+        <a href="mailto:support@jobsnap-psi.vercel.app" style={{ color: '#64748b', fontSize: 13, textDecoration: 'none' }}>Contact</a>
+      </div>
     </div>
   );
 }
