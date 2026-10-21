@@ -20,8 +20,11 @@ export default async function handler(req, res) {
     .single();
 
   if (error || !quote) return res.status(404).json({ error: 'Quote not found' });
-  if (!['Approved', 'Completed'].includes(quote.status)) return res.status(400).json({ error: 'This estimate is not ready for payment yet.' });
-  if (quote.paid_at) return res.status(400).json({ error: 'This estimate has already been paid.' });
+  // An invoice is payable immediately, regardless of the underlying
+  // estimate's approval status -- only a regular (non-invoice) estimate
+  // needs to have been approved/completed first.
+  if (!quote.is_invoice && !['Approved', 'Completed'].includes(quote.status)) return res.status(400).json({ error: 'This estimate is not ready for payment yet.' });
+  if (quote.paid_at) return res.status(400).json({ error: 'This has already been paid.' });
 
   const profile = quote.profiles || {};
   if (!profile.stripe_account_id || !profile.stripe_charges_enabled) {
@@ -40,7 +43,7 @@ export default async function handler(req, res) {
       line_items: [{
         price_data: {
           currency: 'usd',
-          product_data: { name: `Estimate #${quote.number} — ${profile.company_name || 'JobSnap'}` },
+          product_data: { name: `${quote.is_invoice ? 'Invoice' : 'Estimate'} #${quote.number} — ${profile.company_name || 'JobSnap'}` },
           unit_amount: amountCents,
         },
         quantity: 1,

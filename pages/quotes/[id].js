@@ -4,8 +4,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { getT } from '../../lib/i18n';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
-import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar, Flag } from 'lucide-react';
-import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet, Input } from '../../components/ui';
+import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar, Flag, Receipt } from 'lucide-react';
+import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet, Input, InvoiceTag } from '../../components/ui';
 import Timeline from '../../components/Timeline';
 import { HardHat } from 'lucide-react';
 
@@ -161,6 +161,20 @@ export default function QuoteDetail() {
     if (updated) setShowShare(true);
   };
 
+  const handleConvertToInvoice = async () => {
+    if (!confirm('Turn this into an invoice? The customer will be able to pay it immediately, whether or not it was approved.')) return;
+    setUpdating(true);
+    try {
+      const updated = await updateQuote(quote.id, { is_invoice: true });
+      setQuote(updated);
+      setShowShare(true);
+    } catch (e) {
+      alert('Could not convert to invoice: ' + (e.error || e.message || 'Unknown error'));
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleSaveSchedule = async () => {
     if (!schedDate) return;
     setScheduling(true);
@@ -210,10 +224,10 @@ export default function QuoteDetail() {
   return (
     <AppShell>
       <PageHeader
-        title={`Quote #${quote.number}`}
+        title={`${quote.is_invoice ? 'Invoice' : 'Quote'} #${quote.number}`}
         subtitle={quote.customer_name}
         onBack={() => router.push('/quotes')}
-        action={<Badge status={quote.status} />}
+        action={<div style={{ display: 'flex', gap: 6 }}>{quote.is_invoice && <InvoiceTag />}<Badge status={quote.status} /></div>}
       />
 
       <div style={{ padding: '16px', overflowY: 'auto' }}>
@@ -287,7 +301,27 @@ export default function QuoteDetail() {
           ))}
           <Btn onClick={async () => { if (quote.status === 'Draft') { const updated = await handleStatus('Sent'); if (!updated) return; } setShowShare(true); }} variant="secondary" size="sm"><Link2 size={15} /> Share</Btn>
           <Btn onClick={handleDownloadPDF} variant="secondary" size="sm"><FileText size={15} /> PDF</Btn>
+          {!quote.is_invoice && (
+            <Btn onClick={handleConvertToInvoice} variant="secondary" size="sm" loading={updating}><Receipt size={15} /> Convert to Invoice</Btn>
+          )}
         </div>
+
+        {/* Invoice payment status */}
+        {quote.is_invoice && (
+          <Card style={{ marginBottom: 16, background: quote.paid_at ? '#f0fdf4' : '#fff', border: quote.paid_at ? '1px solid #bbf7d0' : undefined }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>Payment Status</p>
+                <p style={{ color: quote.paid_at ? '#16a34a' : '#0f172a', fontSize: 15, fontWeight: 800, margin: 0 }}>
+                  {quote.paid_at ? `Paid ${new Date(quote.paid_at).toLocaleDateString()}` : 'Unpaid'}
+                </p>
+              </div>
+              {quote.due_date && !quote.paid_at && (
+                <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>Due {new Date(quote.due_date + 'T00:00:00').toLocaleDateString()}</p>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Line items */}
         <Card style={{ marginBottom: 16 }}>
@@ -418,7 +452,7 @@ export default function QuoteDetail() {
       </BottomSheet>
 
       {/* Share sheet */}
-      <BottomSheet open={showShare} onClose={() => setShowShare(false)} title="Share Quote">
+      <BottomSheet open={showShare} onClose={() => setShowShare(false)} title={quote.is_invoice ? 'Share Invoice' : 'Share Quote'}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <p style={{ color: '#64748b', fontSize: 13, margin: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quoteUrl}</p>

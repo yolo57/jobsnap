@@ -128,6 +128,18 @@ export function Badge({ status, size = 'sm' }) {
   );
 }
 
+// ─── Invoice tag ──────────────────────────────────────────────
+// Sits alongside the status Badge -- a quote can be an invoice at any
+// status, so this is a separate, always-navy marker rather than another
+// Badge status color.
+export function InvoiceTag({ size = 'sm' }) {
+  return (
+    <span style={{ background: '#1e3a5f', color: '#fff', padding: size === 'sm' ? '3px 10px' : '5px 14px', borderRadius: 20, fontSize: size === 'sm' ? 11 : 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+      Invoice
+    </span>
+  );
+}
+
 // ─── Spinner ──────────────────────────────────────────────────
 export function Spinner({ size = 24, color = '#2563eb' }) {
   return (

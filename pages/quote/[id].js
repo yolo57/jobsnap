@@ -164,8 +164,8 @@ export default function PublicQuotePage({ quote }) {
   return (
     <>
       <Head>
-        <title>Estimate #{quote.number} — {profile.company_name}</title>
-        <meta name="description" content={`Professional estimate from ${profile.company_name}`} />
+        <title>{quote.is_invoice ? 'Invoice' : 'Estimate'} #{quote.number} — {profile.company_name}</title>
+        <meta name="description" content={`${quote.is_invoice ? 'Invoice' : 'Professional estimate'} from ${profile.company_name}`} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
@@ -173,7 +173,7 @@ export default function PublicQuotePage({ quote }) {
         {/* Company header */}
         <div style={{ background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', padding: '28px 24px 32px' }}>
           <div style={{ maxWidth: 600, margin: '0 auto' }}>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>Estimate from</p>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>{quote.is_invoice ? 'Invoice from' : 'Estimate from'}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
               {profile.logo_url && <img src={profile.logo_url} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', background: '#fff' }} />}
               <h1 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: 0, fontFamily: "'Sora', sans-serif", letterSpacing: '-0.5px' }}>{profile.company_name || 'Contractor'}</h1>
@@ -196,12 +196,15 @@ export default function PublicQuotePage({ quote }) {
                 {quote.address && <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>{quote.address}</p>}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ color: '#94a3b8', fontSize: 11, margin: '0 0 4px' }}>ESTIMATE #{quote.number}</p>
+                <p style={{ color: '#94a3b8', fontSize: 11, margin: '0 0 4px' }}>{quote.is_invoice ? 'INVOICE' : 'ESTIMATE'} #{quote.number}</p>
                 <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>{new Date(quote.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                {quote.is_invoice && (
+                  <p style={{ color: '#94a3b8', fontSize: 12, margin: '2px 0 0' }}>Due {quote.due_date ? new Date(quote.due_date + 'T00:00:00').toLocaleDateString() : 'upon receipt'}</p>
+                )}
               </div>
             </div>
 
-            {approved && (
+            {approved && !quote.is_invoice && (
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <CheckCircle2 size={20} color="#16a34a" strokeWidth={2} />
@@ -251,7 +254,7 @@ export default function PublicQuotePage({ quote }) {
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#0f172a', fontSize: 18, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>Total Estimate</span>
+                <span style={{ color: '#0f172a', fontSize: 18, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>{quote.is_invoice ? (quote.paid_at ? 'Total Paid' : 'Amount Due') : 'Total Estimate'}</span>
                 <span style={{ color: '#2563eb', fontSize: 26, fontWeight: 900, fontFamily: "'Sora', sans-serif" }}>${(quote.total || 0).toLocaleString()}</span>
               </div>
             </div>
@@ -274,7 +277,7 @@ export default function PublicQuotePage({ quote }) {
           )}
 
           {/* Pay Now */}
-          {['Approved', 'Completed'].includes(quote.status) && canPayOnline && (
+          {(quote.is_invoice || ['Approved', 'Completed'].includes(quote.status)) && canPayOnline && (
             <div style={{ background: isPaid ? '#f0fdf4' : '#fff', borderRadius: 16, padding: '18px 20px', border: isPaid ? '1px solid #bbf7d0' : '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
               {isPaid ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -325,7 +328,7 @@ export default function PublicQuotePage({ quote }) {
           )}
 
           {/* Approve CTA */}
-          {!approved && quote.status === 'Sent' && !showSignStep && (
+          {!approved && !quote.is_invoice && quote.status === 'Sent' && !showSignStep && (
             <button
               onClick={() => setShowSignStep(true)}
               style={{ width: '100%', background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none', borderRadius: 16, padding: '18px', cursor: 'pointer', color: '#fff', fontSize: 17, fontWeight: 800, fontFamily: "'Sora', sans-serif", boxShadow: '0 4px 16px rgba(22,163,74,0.3)', marginBottom: 12 }}
@@ -334,7 +337,7 @@ export default function PublicQuotePage({ quote }) {
             </button>
           )}
 
-          {!approved && quote.status === 'Sent' && showSignStep && (
+          {!approved && !quote.is_invoice && quote.status === 'Sent' && showSignStep && (
             <div style={{ background: '#fff', borderRadius: 16, padding: '18px 20px', border: '1px solid #e2e8f0', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
               <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 800, margin: '0 0 12px', fontFamily: "'Sora', sans-serif" }}>{t('sign_to_approve')}</p>
               <label style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{t('your_full_name')}</label>
@@ -356,7 +359,7 @@ export default function PublicQuotePage({ quote }) {
             </div>
           )}
 
-          {['Sent', 'Approved', 'Completed'].includes(quote.status) && (
+          {(quote.is_invoice || ['Sent', 'Approved', 'Completed'].includes(quote.status)) && (
             <div style={{ marginBottom: 16 }}>
               <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>{t('job_updates')}</p>
               <Timeline quoteId={quote.id} role="customer" authorName={quote.customer_name || 'Customer'} lang={lang} />

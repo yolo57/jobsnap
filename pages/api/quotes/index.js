@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'QUOTA_EXCEEDED', plan: profile.plan, used: profile.quotes_used_this_month });
     }
 
-    const { customer_name, customer_email, address, transcript, line_items, notes, customer_id, tax_type, tax_value, discount_type, discount_value } = req.body;
+    const { customer_name, customer_email, address, transcript, line_items, notes, customer_id, tax_type, tax_value, discount_type, discount_value, is_invoice, due_date } = req.body;
     const items = line_items || [];
     const subtotal = items.reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
     const taxableSubtotal = items.filter(i => i.taxable).reduce((s, i) => s + (Number(i.price) * Number(i.qty)), 0);
@@ -75,7 +75,14 @@ export default async function handler(req, res) {
       // app-language setting (what they were actually using to build it),
       // unless the client explicitly says otherwise.
       language: ['en', 'es'].includes(req.body.language) ? req.body.language : (profile?.language === 'es' ? 'es' : 'en'),
-      status: 'Draft',
+      // A standalone invoice (not converted from an existing estimate) skips
+      // the Draft/approval workflow entirely -- it's billable the moment
+      // it's created, so it's marked "Sent" right away.
+      status: is_invoice ? 'Sent' : 'Draft',
+      is_invoice: !!is_invoice,
+      due_date: due_date || null,
+      invoiced_at: is_invoice ? new Date().toISOString() : null,
+      sent_at: is_invoice ? new Date().toISOString() : null,
     }).select().single();
 
     if (error) return res.status(500).json({ error: error.message });

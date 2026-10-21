@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
 import { Search, FileText, Mic, Bell } from 'lucide-react';
-import { Card, Badge, Btn, PageHeader, EmptyState, Spinner } from '../../components/ui';
+import { Card, Badge, Btn, PageHeader, EmptyState, Spinner, InvoiceTag } from '../../components/ui';
 
 export default function QuotesPage() {
   const router = useRouter();
@@ -15,9 +15,9 @@ export default function QuotesPage() {
 
   useEffect(() => { if (!authLoading && !user) router.replace('/login'); }, [user, authLoading]);
 
-  const filters = ['All', 'Draft', 'Sent', 'Approved', 'Rejected'];
+  const filters = ['All', 'Draft', 'Sent', 'Approved', 'Rejected', 'Invoices'];
   const filtered = quotes.filter(q => {
-    const matchFilter = filter === 'All' || q.status === filter;
+    const matchFilter = filter === 'All' || (filter === 'Invoices' ? q.is_invoice : q.status === filter);
     const matchSearch = !search || q.customer_name?.toLowerCase().includes(search.toLowerCase()) || q.address?.toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
@@ -32,6 +32,7 @@ export default function QuotesPage() {
             <button onClick={() => router.push('/followups')} title="Follow Up" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#1e3a5f', cursor: 'pointer', width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Bell size={16} />
             </button>
+            <Btn onClick={() => router.push('/quotes/new?invoice=1')} variant="secondary" size="sm">+ Invoice</Btn>
             <Btn onClick={() => router.push('/record')} size="sm">+ Record</Btn>
           </div>
         } />
@@ -44,7 +45,7 @@ export default function QuotesPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
             {filters.map(f => {
-              const count = f === 'All' ? quotes.length : quotes.filter(q => q.status === f).length;
+              const count = f === 'All' ? quotes.length : f === 'Invoices' ? quotes.filter(q => q.is_invoice).length : quotes.filter(q => q.status === f).length;
               return (
                 <button key={f} onClick={() => setFilter(f)} style={{ background: filter === f ? '#1e3a5f' : '#fff', border: `1px solid ${filter === f ? '#1e3a5f' : '#e2e8f0'}`, borderRadius: 20, padding: '6px 14px', cursor: 'pointer', color: filter === f ? '#fff' : '#64748b', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, fontFamily: "'DM Sans', sans-serif" }}>
                   {f} <span style={{ background: filter === f ? 'rgba(255,255,255,0.2)' : '#f1f5f9', borderRadius: 10, padding: '1px 7px', fontSize: 11 }}>{count}</span>
@@ -68,7 +69,10 @@ export default function QuotesPage() {
                       <p style={{ color: '#0f172a', fontSize: 14, fontWeight: 700, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.customer_name || 'No customer'}</p>
                       <p style={{ color: '#94a3b8', fontSize: 12, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.address || 'No address'}</p>
                     </div>
-                    <Badge status={q.status} />
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      {q.is_invoice && <InvoiceTag />}
+                      <Badge status={q.status} />
+                    </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: 12 }}>

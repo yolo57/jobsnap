@@ -12,7 +12,9 @@ export default async function handler(req, res) {
   if (req.method === 'GET' && !req.headers.authorization) {
     const { data, error } = await supabase.from('quotes').select('*, profiles(company_name, phone, email, logo_url, owner_name, license_number, payment_terms, quote_notes, stripe_account_id, stripe_charges_enabled)').eq('id', id).single();
     if (error || !data) return res.status(404).json({ error: 'Quote not found' });
-    if (!['Sent', 'Approved', 'Rejected', 'Completed'].includes(data.status)) return res.status(403).json({ error: 'Not available' });
+    // An invoice is shareable/payable the moment it's marked as one,
+    // regardless of the underlying estimate's approval status.
+    if (!data.is_invoice && !['Sent', 'Approved', 'Rejected', 'Completed'].includes(data.status)) return res.status(403).json({ error: 'Not available' });
     return res.status(200).json(data);
   }
 
@@ -61,6 +63,12 @@ export default async function handler(req, res) {
     if (updates.status === 'Approved') updates.approved_at = new Date().toISOString();
     if (updates.status === 'Rejected') updates.rejected_at = new Date().toISOString();
     if (updates.status === 'Completed') updates.completed_at = new Date().toISOString();
+    // Converting an existing estimate to an invoice, at any status -- it's
+    // billable immediately, regardless of whether it was ever approved.
+    if (updates.is_invoice === true) {
+      updates.invoiced_at = new Date().toISOString();
+      if (!updates.sent_at) updates.sent_at = new Date().toISOString();
+    }
 
     const { data, error } = await supabase.from('quotes').update(updates).eq('id', id).eq('user_id', user.id).select().single();
     if (error) return res.status(500).json({ error: error.message });

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 import { getT } from '../lib/i18n';
 import { useQuotes } from '../hooks/useQuotes';
-import { Ban, Zap, Mic, FileText, Users, Calendar, MapPin, HardHat } from 'lucide-react';
+import { Ban, Zap, Mic, FileText, Users, Calendar, MapPin, HardHat, Receipt } from 'lucide-react';
 import AppShell from '../components/layout/AppShell';
 import { Card, Badge, Btn, Spinner } from '../components/ui';
 import { PLANS, quotesRemaining } from '../lib/stripe';
@@ -95,6 +95,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
             {[
               { Icon: FileText, label: t('new_quote'), href: '/quotes/new' },
+              { Icon: Receipt, label: 'New Invoice', href: '/quotes/new?invoice=1' },
               { Icon: Users, label: t('add_client'), href: '/customers' },
             ].map(item => (
               <button key={item.label} onClick={() => router.push(item.href)} style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>

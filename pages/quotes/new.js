@@ -27,10 +27,16 @@ export default function NewQuote() {
   const [taxValue, setTaxValue] = useState(0);
   const [discountType, setDiscountType] = useState('flat'); // 'percent' | 'flat'
   const [discountValue, setDiscountValue] = useState(0);
+  const [isInvoice, setIsInvoice] = useState(false);
+  const [dueDate, setDueDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [photos, setPhotos] = useState([]); // { id, dataUrl, file? }
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (router.query.invoice === '1') setIsInvoice(true);
+  }, [router.query.invoice]);
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -144,6 +150,8 @@ export default function NewQuote() {
         tax_value: Number(taxValue) || 0,
         discount_type: discountType,
         discount_value: Number(discountValue) || 0,
+        is_invoice: isInvoice,
+        due_date: isInvoice ? (dueDate || null) : null,
       });
       if (quote?.error === 'QUOTA_EXCEEDED') { setShowUpgrade(true); return; }
       if (photos.length > 0) await uploadPhotos(quote.id);
@@ -182,9 +190,19 @@ export default function NewQuote() {
       {showUpgrade && <UpgradeWall plan={profile?.plan} quotesUsed={profile?.quotes_used_this_month} onUpgrade={handleUpgrade} onClose={() => { setShowUpgrade(false); router.push('/dashboard'); }} />}
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <PageHeader title="New Estimate" onBack={() => router.back()} action={
+        <PageHeader title={isInvoice ? 'New Invoice' : 'New Estimate'} onBack={() => router.back()} action={
           <Btn onClick={handleSave} size="sm" loading={saving}>Save</Btn>
         } />
+
+        <div style={{ padding: '12px 16px 0' }}>
+          <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 10, padding: 3, gap: 2 }}>
+            <button onClick={() => setIsInvoice(false)} style={{ border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', background: !isInvoice ? '#2563eb' : 'transparent', color: !isInvoice ? '#fff' : '#64748b', fontFamily: "'DM Sans', sans-serif" }}>Estimate</button>
+            <button onClick={() => setIsInvoice(true)} style={{ border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', background: isInvoice ? '#1e3a5f' : 'transparent', color: isInvoice ? '#fff' : '#64748b', fontFamily: "'DM Sans', sans-serif" }}>Invoice</button>
+          </div>
+          {isInvoice && (
+            <p style={{ color: '#94a3b8', fontSize: 12, margin: '8px 0 0' }}>Invoices skip approval — the customer can pay as soon as you send it.</p>
+          )}
+        </div>
 
         {scope && (
           <div style={{ background: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '12px 20px' }}>
@@ -198,7 +216,8 @@ export default function NewQuote() {
             <p style={{ color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 14px' }}>Customer</p>
             <Input label="Customer Name" value={customerName} onChange={setCustomerName} placeholder="John Smith" />
             <Input label="Email" type="email" value={customerEmail} onChange={setCustomerEmail} placeholder="customer@email.com" hint="Used for follow-up emails" />
-            <Input label="Job Address" value={address} onChange={setAddress} placeholder="123 Main St, City, State" style={{ marginBottom: 0 }} />
+            <Input label="Job Address" value={address} onChange={setAddress} placeholder="123 Main St, City, State" style={isInvoice ? {} : { marginBottom: 0 }} />
+            {isInvoice && <Input label="Due Date (optional)" type="date" value={dueDate} onChange={setDueDate} hint="Leave blank for 'due upon receipt'" style={{ marginBottom: 0 }} />}
           </Card>
 
           {/* Line items */}
@@ -316,7 +335,7 @@ export default function NewQuote() {
             <Input label="Notes" value={notes} onChange={setNotes} placeholder={profile?.quote_notes || 'Thank you for your business!'} multiline rows={3} style={{ marginBottom: 0 }} />
           </Card>
 
-          <Btn onClick={handleSave} fullWidth size="lg" loading={saving}>Save Estimate</Btn>
+          <Btn onClick={handleSave} fullWidth size="lg" loading={saving}>{isInvoice ? 'Save & Send Invoice' : 'Save Estimate'}</Btn>
         </div>
       </div>
 
