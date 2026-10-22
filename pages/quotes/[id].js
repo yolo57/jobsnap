@@ -112,13 +112,15 @@ export default function QuoteDetail() {
   };
 
   const handleDownloadPDF = async () => {
+    const win = window.open('', '_blank'); // opened synchronously so it isn't treated as a popup
     const { downloadQuotePDF } = await import('../../lib/pdf');
-    await downloadQuotePDF(quote, profile);
+    await downloadQuotePDF(quote, profile, win);
   };
 
   const handlePreviewPDF = async () => {
+    const win = window.open('', '_blank'); // opened synchronously so it isn't treated as a popup
     const { previewQuotePDF } = await import('../../lib/pdf');
-    await previewQuotePDF(quote, profile);
+    await previewQuotePDF(quote, profile, win);
   };
 
   const handleOpenPayment = () => {

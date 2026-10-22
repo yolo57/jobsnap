@@ -165,6 +165,7 @@ export default function NewQuote() {
   };
 
   const handlePreview = async () => {
+    const win = window.open('', '_blank'); // opened synchronously so it isn't treated as a popup
     const { previewQuotePDF } = await import('../../lib/pdf');
     await previewQuotePDF({
       number: 'PREVIEW',
@@ -184,7 +185,7 @@ export default function NewQuote() {
       subtotal,
       total,
       paid_at: null,
-    }, profile);
+    }, profile, win);
   };
 
   const handleUpgrade = async (plan) => {

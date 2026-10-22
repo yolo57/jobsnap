@@ -92,6 +92,7 @@ export default function EditQuote() {
   };
 
   const handlePreview = async () => {
+    const win = window.open('', '_blank'); // opened synchronously so it isn't treated as a popup
     const { previewQuotePDF } = await import('../../../lib/pdf');
     await previewQuotePDF({
       ...quote,
@@ -107,7 +108,7 @@ export default function EditQuote() {
       discount_amount: discountAmount,
       subtotal,
       total,
-    }, profile);
+    }, profile, win);
   };
 
   if (!user || !quote) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner size={32} /></div>;
