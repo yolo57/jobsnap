@@ -10,7 +10,7 @@ import { getT } from '../../../lib/i18n';
 export default function EditQuote() {
   const router = useRouter();
   const { id } = router.query;
-  const { user, language } = useAuth();
+  const { user, profile, language } = useAuth();
   const t = getT(language);
   const { quotes, updateQuote } = useQuotes();
   const [quote, setQuote] = useState(null);
@@ -91,6 +91,25 @@ export default function EditQuote() {
     }
   };
 
+  const handlePreview = async () => {
+    const { previewQuotePDF } = await import('../../../lib/pdf');
+    await previewQuotePDF({
+      ...quote,
+      customer_name: customerName,
+      address,
+      line_items: lineItems,
+      notes,
+      tax_type: taxType,
+      tax_value: Number(taxValue) || 0,
+      tax_amount: tax,
+      discount_type: discountType,
+      discount_value: Number(discountValue) || 0,
+      discount_amount: discountAmount,
+      subtotal,
+      total,
+    }, profile);
+  };
+
   if (!user || !quote) return <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner size={32} /></div>;
 
   const typeToggle = (value, onChange) => (
@@ -103,8 +122,11 @@ export default function EditQuote() {
   return (
     <AppShell>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <PageHeader title="Edit Estimate" onBack={() => router.push(`/quotes/${id}`)} action={
-          <Btn onClick={handleSave} size="sm" loading={saving}>Save</Btn>
+        <PageHeader title={quote.is_invoice ? 'Edit Invoice' : 'Edit Estimate'} onBack={() => router.push(`/quotes/${id}`)} action={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={handlePreview} variant="secondary" size="sm">Preview</Btn>
+            <Btn onClick={handleSave} size="sm" loading={saving}>Save</Btn>
+          </div>
         } />
 
         <div style={{ padding: '16px', overflowY: 'auto' }}>

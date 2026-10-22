@@ -164,6 +164,29 @@ export default function NewQuote() {
     }
   };
 
+  const handlePreview = async () => {
+    const { previewQuotePDF } = await import('../../lib/pdf');
+    await previewQuotePDF({
+      number: 'PREVIEW',
+      is_invoice: isInvoice,
+      due_date: isInvoice ? (dueDate || null) : null,
+      customer_name: customerName,
+      address,
+      created_at: new Date().toISOString(),
+      line_items: lineItems,
+      notes,
+      tax_type: taxType,
+      tax_value: Number(taxValue) || 0,
+      tax_amount: tax,
+      discount_type: discountType,
+      discount_value: Number(discountValue) || 0,
+      discount_amount: discountAmount,
+      subtotal,
+      total,
+      paid_at: null,
+    }, profile);
+  };
+
   const handleUpgrade = async (plan) => {
     const token = await getToken();
     const res = await fetch('/api/stripe/checkout', {
@@ -191,7 +214,10 @@ export default function NewQuote() {
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <PageHeader title={isInvoice ? 'New Invoice' : 'New Estimate'} onBack={() => router.back()} action={
-          <Btn onClick={handleSave} size="sm" loading={saving}>Save</Btn>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn onClick={handlePreview} variant="secondary" size="sm">Preview</Btn>
+            <Btn onClick={handleSave} size="sm" loading={saving}>Save</Btn>
+          </div>
         } />
 
         <div style={{ padding: '12px 16px 0' }}>

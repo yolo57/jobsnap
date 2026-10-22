@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { getT } from '../../lib/i18n';
 import { useQuotes } from '../../hooks/useQuotes';
 import AppShell from '../../components/layout/AppShell';
-import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar, Flag, Receipt } from 'lucide-react';
+import { Send, Pencil, CheckCircle2, XCircle, FileText, Copy as CopyIcon, Link2, Globe, Mail, MessageSquare, Check, Star, Calendar, Flag, Receipt, DollarSign, Eye } from 'lucide-react';
 import { Card, Badge, Btn, PageHeader, Spinner, BottomSheet, Input, InvoiceTag } from '../../components/ui';
 import Timeline from '../../components/Timeline';
 import { HardHat } from 'lucide-react';
@@ -59,6 +59,10 @@ export default function QuoteDetail() {
   const [copiedSub, setCopiedSub] = useState(false);
   const [gettingSubLink, setGettingSubLink] = useState(false);
   const [authToken, setAuthToken] = useState(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [recordingPayment, setRecordingPayment] = useState(false);
 
   useEffect(() => {
     if (!user) { router.replace('/login'); return; }
@@ -110,6 +114,49 @@ export default function QuoteDetail() {
   const handleDownloadPDF = async () => {
     const { downloadQuotePDF } = await import('../../lib/pdf');
     await downloadQuotePDF(quote, profile);
+  };
+
+  const handlePreviewPDF = async () => {
+    const { previewQuotePDF } = await import('../../lib/pdf');
+    await previewQuotePDF(quote, profile);
+  };
+
+  const handleOpenPayment = () => {
+    setPaymentAmount(String(quote.total || 0));
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setShowPayment(true);
+  };
+
+  const handleRecordPayment = async () => {
+    const amount = Number(paymentAmount);
+    if (!amount || amount <= 0) { alert('Enter a payment amount.'); return; }
+    if (!paymentDate) { alert('Pick a payment date.'); return; }
+    setRecordingPayment(true);
+    try {
+      const updated = await updateQuote(quote.id, {
+        payment_amount: amount,
+        paid_at: new Date(paymentDate + 'T12:00:00').toISOString(),
+      });
+      setQuote(updated);
+      setShowPayment(false);
+    } catch (e) {
+      alert('Could not record payment: ' + (e.error || e.message || 'Unknown error'));
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
+
+  const handleUndoPayment = async () => {
+    if (!confirm('Remove the paid status from this invoice? It will show as unpaid again.')) return;
+    setUpdating(true);
+    try {
+      const updated = await updateQuote(quote.id, { payment_amount: null, paid_at: null });
+      setQuote(updated);
+    } catch (e) {
+      alert('Could not undo payment: ' + (e.error || e.message || 'Unknown error'));
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -300,6 +347,7 @@ export default function QuoteDetail() {
             </Btn>
           ))}
           <Btn onClick={async () => { if (quote.status === 'Draft') { const updated = await handleStatus('Sent'); if (!updated) return; } setShowShare(true); }} variant="secondary" size="sm"><Link2 size={15} /> Share</Btn>
+          <Btn onClick={handlePreviewPDF} variant="secondary" size="sm"><Eye size={15} /> Preview</Btn>
           <Btn onClick={handleDownloadPDF} variant="secondary" size="sm"><FileText size={15} /> PDF</Btn>
           {!quote.is_invoice && (
             <Btn onClick={handleConvertToInvoice} variant="secondary" size="sm" loading={updating}><Receipt size={15} /> Convert to Invoice</Btn>
@@ -318,6 +366,13 @@ export default function QuoteDetail() {
               </div>
               {quote.due_date && !quote.paid_at && (
                 <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>Due {new Date(quote.due_date + 'T00:00:00').toLocaleDateString()}</p>
+              )}
+            </div>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${quote.paid_at ? '#bbf7d0' : '#f1f5f9'}` }}>
+              {quote.paid_at ? (
+                <Btn onClick={handleUndoPayment} variant="ghost" size="sm" loading={updating}>Undo — mark as unpaid</Btn>
+              ) : (
+                <Btn onClick={handleOpenPayment} variant="secondary" size="sm" fullWidth><DollarSign size={15} /> Record Payment</Btn>
               )}
             </div>
           </Card>
@@ -448,6 +503,18 @@ export default function QuoteDetail() {
           <Input label={t('assigned_to_optional')} placeholder={t('assigned_to_placeholder')} value={assignedTo} onChange={setAssignedTo} />
           <Btn onClick={handleSaveSchedule} variant="primary" fullWidth loading={scheduling} disabled={!schedDate}>{t('save_schedule')}</Btn>
           {quote.customer_email && <p style={{ color: '#94a3b8', fontSize: 12, margin: 0, textAlign: 'center' }}>{t('customer_gets_email', !!schedTime)}</p>}
+        </div>
+      </BottomSheet>
+
+      {/* Record payment sheet */}
+      <BottomSheet open={showPayment} onClose={() => setShowPayment(false)} title="Record Payment">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p style={{ color: '#64748b', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+            For payments you collected outside the app (cash, check, Zelle, etc). This marks the invoice as paid so it shows nothing due.
+          </p>
+          <Input label="Amount Paid ($)" type="number" value={paymentAmount} onChange={setPaymentAmount} />
+          <Input label="Date Paid" type="date" value={paymentDate} onChange={setPaymentDate} />
+          <Btn onClick={handleRecordPayment} variant="primary" fullWidth loading={recordingPayment}>Mark as Paid</Btn>
         </div>
       </BottomSheet>
 
